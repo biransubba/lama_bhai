@@ -71,7 +71,7 @@ Stored in `backend/.env`:
 - [x] **Phase 4:** Authentication engine (Passport.js & Sessions)
 - [x] **Phase 5:** Role-based authorization middleware
 - [x] **Phase 6:** Public property listing APIs
-- [ ] **Phase 7:** Owner property submission pipeline
+- [x] **Phase 7:** Owner property submission pipeline
 - [ ] **Phase 8:** Admin approval/rejection moderation
 - [ ] **Phase 9:** Multer + Cloudinary image upload
 - [ ] **Phase 10:** Customer booking system
@@ -129,6 +129,23 @@ Public endpoints powering the Sikkim stays directory, homestay cards, filters, a
 | `GET` | `/api/properties/featured` | None | Retrieves top-rated and featured properties (curated for homepage showcase) |
 | `GET` | `/api/properties/:slug` | None (slug or ObjectId) | Full detail view with populated owner profile, active rooms, and approved reviews |
 | `GET` | `/api/properties/:id/rooms` | None (:id or :slug) | Room inventory for a specific property including bed types, pricing, and availability |
+
+---
+
+## 10. Owner Property Submission Pipeline (Phase 7)
+Endpoints powering the Partner Portal in `backend/routes/ownerRoutes.js`:
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/owner/properties` | Owner / Admin | Submits a new property listing with unique slug generation (defaults to `pending` status) |
+| `GET` | `/api/owner/properties` | Owner / Admin | Retrieves all properties owned by the authenticated host with moderation status |
+| `GET` | `/api/owner/properties/:id` | Owner / Admin | Fetches single property owned by the user with populated rooms and moderation feedback |
+| `PUT` | `/api/owner/properties/:id` | Owner / Admin | Updates property details with strict cross-owner isolation checks |
+| `DELETE` | `/api/owner/properties/:id` | Owner / Admin | Deactivates property and cascades `active: false` across all attached rooms |
+| `POST` | `/api/owner/properties/:id/rooms` | Owner / Admin | Adds a new room type to the owner's property |
+| `PUT` | `/api/owner/rooms/:roomId` | Owner / Admin | Updates room capacity, pricing, amenities, and availability status |
+| `DELETE` | `/api/owner/rooms/:roomId` | Owner / Admin | Deactivates room from property inventory |
+
 
 
 
