@@ -69,7 +69,7 @@ Stored in `backend/.env`:
 - [x] **Phase 2:** Database design & Mongoose schemas (User, Property, Room, Booking, Review, Destination)
 - [x] **Phase 3:** MongoDB connection setup
 - [x] **Phase 4:** Authentication engine (Passport.js & Sessions)
-- [ ] **Phase 5:** Role-based authorization middleware
+- [x] **Phase 5:** Role-based authorization middleware
 - [ ] **Phase 6:** Public property listing APIs
 - [ ] **Phase 7:** Owner property submission pipeline
 - [ ] **Phase 8:** Admin approval/rejection moderation
@@ -105,5 +105,18 @@ The authentication layer uses Passport.js local strategy with MongoDB-backed ses
 | `POST` | `/api/auth/login` | Public | Authenticates credentials, creates signed session cookie, and updates `lastLogin` |
 | `POST` | `/api/auth/logout` | Authenticated | Destroys server-side session in MongoDB and clears `connect.sid` cookie |
 | `GET` | `/api/auth/me` | Authenticated | Returns currently authenticated user details, partner profile, and role |
+
+---
+
+## 8. Role-Based Authorization Middleware (Phase 5)
+Reusable route guards implemented in `backend/middleware/authMiddleware.js`:
+
+| Middleware | Target Scenarios | Behavior |
+| :--- | :--- | :--- |
+| **`protect`** | Protected customer/owner/admin endpoints | Blocks unauthenticated requests with `401 Unauthorized`; blocks deactivated accounts with `403 Forbidden` |
+| **`authorize(...roles)`** | Role-restricted endpoints (e.g. `authorize('owner', 'admin')`) | Allows only listed roles; returns `403 Forbidden` if user role is not authorized |
+| **`ensureApprovedOwner`** | Partner listing creation & inventory management | Blocks non-owners and suspended/rejected partners with `403 Forbidden`; automatically grants bypass to `admin` |
+| **`optionalAuth`** | Public listings with personalized tourist data | Passes through without blocking unauthenticated guests, but attaches `req.user` if logged in |
+
 
 
