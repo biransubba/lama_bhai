@@ -4,7 +4,10 @@
   "description": "",
   "scripts": {
     "start": "parcel index.html",
-    "build": "parcel build index.html"
+    "build": "parcel build index.html",
+    "backend": "npm --prefix backend run dev",
+    "seed": "node backend/scripts/seedDestinations.js",
+    "test:e2e": "node backend/scripts/testEndToEnd.js"
   },
   "keywords": [],
   "author": "",
