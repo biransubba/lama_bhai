@@ -3,8 +3,10 @@ import { normalizeBookingRequest, BOOKING_REQUEST_STATUSES, INVENTORY_SERVICES }
 import { staysStore, getRoomById } from "../data/staysStore.js";
 import { carUnitsRepo, carModelsRepo } from "../data/vehicles.js";
 import { bikeUnitsRepo, bikeModelsRepo } from "../data/bikes.js";
+import { api } from "./api.js";
 
-// Frontend-only booking/request storage using localStorage with safe schema normalization.
+// Frontend booking/request storage using localStorage with safe schema normalization
+// and real-time synchronization with the Express/MongoDB backend.
 //
 // SEPARATION OF CONCERNS (Requirement 8):
 // - Booking Request Status tracks customer enquiry progression:
@@ -42,6 +44,7 @@ export function getAllBookingRequests() {
 
 /**
  * Saves a new booking enquiry referencing an inventory ID.
+ * Persists locally and synchronizes with Express/MongoDB backend asynchronously.
  */
 export function saveBookingRequest(request) {
   const reqId = request.bookingRequestId || request.id || `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -56,7 +59,40 @@ export function saveBookingRequest(request) {
     updatedAt: now,
   });
 
-  return bookingRepo.add(normalized);
+  const saved = bookingRepo.add(normalized);
+
+  // Asynchronously synchronize with live backend if in browser
+  if (typeof window !== "undefined" && typeof fetch !== "undefined") {
+    const payload = {
+      service: request.service || "Stay",
+      customerName: request.fullName || request.customerName || request.name || "Guest",
+      customerEmail: request.email || request.customerEmail || "guest@lamabhaila.com",
+      customerPhone: request.phone || request.customerPhone || "9876543210",
+      guestCount: parseInt(request.guests || request.guestCount || 1, 10) || 1,
+      dates: {
+        checkIn: request.checkInDate || request.checkIn || new Date().toISOString(),
+        checkOut: request.checkOutDate || request.checkOut || new Date(Date.now() + 86400000).toISOString(),
+      },
+      specialRequests: request.notes || request.specialRequests || "",
+    };
+
+    api.bookings
+      .create(payload)
+      .then((res) => {
+        if (res && res.success && res.data) {
+          bookingRepo.update("id", reqId, {
+            backendId: res.data._id,
+            bookingRequestId: res.data.bookingRequestId || reqId,
+            trackingCode: res.data.bookingRequestId,
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn("[bookingStorage] Backend sync deferred (offline/fallback mode):", err.message);
+      });
+  }
+
+  return saved;
 }
 
 /**
@@ -145,6 +181,15 @@ export function cancelBookingRequest(id, { reason = "Customer request", notes = 
       window.dispatchEvent(
         new CustomEvent("booking-cancelled", { detail: { bookingId: id, service: target.service, inventoryId: target.inventoryId } })
       );
+
+      // Asynchronously sync cancellation with backend API
+      if (typeof fetch !== "undefined") {
+        api.bookings
+          .cancel(target.bookingRequestId || target.backendId || id, reason)
+          .catch((err) => {
+            console.warn("[bookingStorage] Backend cancel sync deferred:", err.message);
+          });
+      }
     }
   }
 

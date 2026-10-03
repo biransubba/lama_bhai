@@ -9,6 +9,7 @@ import FilterBar from "../components/FilterBar.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import OfferBadge from "../components/OfferBadge.jsx";
 import { parseAndFormatPrice } from "../utils/priceFormatter.js";
+import { api } from "../utils/api.js";
 import "./HotelHomestay.css";
 
 const STAY_TYPES = ["Homestay", "Hotel", "Guest House", "Resort"];
@@ -48,7 +49,42 @@ export default function HotelHomestay() {
     window.addEventListener("homestay-photos-changed", onPhotoUpdate);
     window.addEventListener("photos-changed", onPhotoUpdate);
 
+    // Live backend synchronization for approved properties
+    let isMounted = true;
+    api.properties
+      .getAll({ status: "approved" })
+      .then((res) => {
+        if (isMounted && res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          const backendStays = res.data.map((p) => ({
+            id: p.slug || p._id,
+            _id: p._id,
+            name: p.title || p.name,
+            location: p.location?.town || p.location?.district || "Sikkim",
+            district: p.location?.district,
+            type: p.type || "Homestay",
+            description: p.description,
+            price: p.pricing?.displayPrice || (p.pricing?.basePrice ? `₹${p.pricing.basePrice}/night` : "₹2,000/night"),
+            rating: p.rating || 0,
+            numReviews: p.numReviews || 0,
+            image: p.images?.cover || (p.images?.gallery && p.images.gallery[0]) || "",
+            amenities: p.amenities || [],
+            active: p.active !== false,
+            availability: "available",
+          }));
+
+          setAllStays((prev) => {
+            const existingIds = new Set(backendStays.map((s) => s.id));
+            const retainedLocals = prev.filter((s) => !existingIds.has(s.id));
+            return [...backendStays, ...retainedLocals];
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn("[HotelHomestay] Backend stays fetch deferred (offline/local mode):", err.message);
+      });
+
     return () => {
+      isMounted = false;
       window.removeEventListener("admin-storage-changed", refreshStays);
       window.removeEventListener("storage", refreshStays);
       window.removeEventListener("homestay-photos-changed", onPhotoUpdate);

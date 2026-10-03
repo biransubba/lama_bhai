@@ -15,6 +15,7 @@ import {
 import { destinationsRepo, greenLakeTrek as initialTrek } from "../data/destinations.js";
 import { getDefaultDestinationPhotos, unwrapImageUrl } from "../data/destinationImages.js";
 import { getAllEntityPhotoSummaries } from "../utils/stayPhotoStorage.js";
+import { api } from "../utils/api.js";
 import "./Destinations.css";
 
 function getDestinationIcon(slug, tag = "") {
@@ -68,7 +69,23 @@ export default function Destinations() {
     window.addEventListener("admin-storage-changed", handleUpdate);
     window.addEventListener("storage", handleUpdate);
 
+    // Live backend synchronization
+    let isMounted = true;
+    api.destinations
+      .getAll()
+      .then((res) => {
+        if (isMounted && res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setDestList(res.data.filter((d) => d.slug !== "green-lake-trek" && d.isActive !== false));
+          const foundTrek = res.data.find((d) => d.slug === "green-lake-trek");
+          if (foundTrek) setTrek(foundTrek);
+        }
+      })
+      .catch((err) => {
+        console.warn("[Destinations] Backend fetch deferred (offline/local fallback):", err.message);
+      });
+
     return () => {
+      isMounted = false;
       window.removeEventListener("photos-changed", handleUpdate);
       window.removeEventListener("homestay-photos-changed", handleUpdate);
       window.removeEventListener("admin-storage-changed", handleUpdate);

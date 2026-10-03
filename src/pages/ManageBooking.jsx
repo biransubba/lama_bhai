@@ -25,6 +25,7 @@ import {
   CANCELLATION_REASONS,
   getInventoryForBooking,
 } from "../utils/bookingStorage.js";
+import { api } from "../utils/api.js";
 import "./ManageBooking.css";
 
 export default function ManageBooking() {
@@ -77,14 +78,57 @@ export default function ManageBooking() {
 
       if (res.success && res.booking) {
         setCurrentBooking(res.booking);
+        setSearching(false);
       } else {
-        setCurrentBooking(null);
-        setErrorMessage(res.error || "No booking matched the details provided.");
+        // Fallback check against live Express/MongoDB backend
+        api.bookings
+          .getById(idVal.trim())
+          .then((backendRes) => {
+            if (backendRes && backendRes.success && backendRes.data) {
+              const b = backendRes.data;
+              const cleanPhoneDigits = phoneVal.replace(/\D/g, "");
+              const bPhoneDigits = (b.customerPhone || "").replace(/\D/g, "");
+              const matchPhone =
+                cleanPhoneDigits.length >= 10 && bPhoneDigits.length >= 10
+                  ? cleanPhoneDigits.slice(-10) === bPhoneDigits.slice(-10)
+                  : cleanPhoneDigits === bPhoneDigits;
+              const matchEmail = (emailVal || "").trim().toLowerCase() === (b.customerEmail || "").trim().toLowerCase();
+
+              if (matchPhone || matchEmail) {
+                setCurrentBooking({
+                  id: b.bookingRequestId || b._id,
+                  bookingRequestId: b.bookingRequestId,
+                  service: b.service || "Stay",
+                  status: b.status || "New",
+                  fullName: b.customerName,
+                  email: b.customerEmail,
+                  phone: b.customerPhone,
+                  guestCount: b.guestCount,
+                  checkInDate: b.dates?.checkIn,
+                  checkOutDate: b.dates?.checkOut,
+                  price: b.pricing?.totalPrice ? `₹${b.pricing.totalPrice}` : "—",
+                  notes: b.specialRequests,
+                  createdAt: b.createdAt,
+                  submittedAt: b.createdAt,
+                });
+                setErrorMessage(null);
+                setSearching(false);
+                return;
+              }
+            }
+            setCurrentBooking(null);
+            setErrorMessage(res.error || "No booking matched the details provided.");
+            setSearching(false);
+          })
+          .catch(() => {
+            setCurrentBooking(null);
+            setErrorMessage(res.error || "No booking matched the details provided.");
+            setSearching(false);
+          });
       }
     } catch (err) {
       console.error("Lookup error:", err);
       setErrorMessage("An unexpected error occurred while looking up your booking.");
-    } finally {
       setSearching(false);
     }
   }

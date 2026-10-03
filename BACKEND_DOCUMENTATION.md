@@ -77,7 +77,7 @@ Stored in `backend/.env`:
 - [x] **Phase 10:** Customer booking system
 - [x] **Phase 11:** Property review system
 - [x] **Phase 12:** Destination & content APIs
-- [ ] **Phase 13:** Frontend integration
+- [x] **Phase 13:** Frontend integration
 - [ ] **Phase 14:** End-to-end testing
 
 ---
@@ -217,3 +217,18 @@ Curated Sikkim travel destinations (Lachen, Lachung, Yumthang Valley, Zero Point
   node scripts/seedDestinations.js
   ```
 
+---
+
+## 16. Frontend REST Integration & Client SDK (Phase 13)
+The React 19 frontend is connected to the Express/MongoDB backend through a centralized, resilient client module in `src/utils/api.js`:
+
+- **Universal API Client (`src/utils/api.js`):**
+  - Targets `http://localhost:5000/api` with `credentials: 'include'` for automatic HTTP-only session cookie transport.
+  - Organized by domain: `api.auth`, `api.properties`, `api.owner`, `api.admin`, `api.bookings`, `api.reviews`, `api.destinations`, `api.upload`.
+- **Real-Time Data Synchronization:**
+  - `src/pages/Destinations.jsx`: Hydrates instantly from local storage, then asynchronously checks and enriches active destinations from `GET /api/destinations`.
+  - `src/pages/HotelHomestay.jsx`: Enriches the public homestay catalog with active approved properties from `GET /api/properties?status=approved`.
+  - `src/utils/bookingStorage.js`: Submits booking requests directly to `POST /api/bookings` in MongoDB, receiving official tracking codes (`LB-ST-XXXX`) while keeping local storage updated.
+  - `src/pages/ManageBooking.jsx`: Looks up customer reservations both in local cache and across remote MongoDB via `GET /api/bookings/:id`.
+- **Zero-Failure Offline & Fallback Resiliency:**
+  - If the backend is temporarily offline or in transition, the React application seamlessly falls back to local repositories without throwing uncaught errors or interrupting user navigation.
