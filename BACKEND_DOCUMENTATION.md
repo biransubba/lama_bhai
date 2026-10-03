@@ -76,7 +76,7 @@ Stored in `backend/.env`:
 - [x] **Phase 9:** Multer + Cloudinary image upload
 - [x] **Phase 10:** Customer booking system
 - [x] **Phase 11:** Property review system
-- [ ] **Phase 12:** Destination & content APIs
+- [x] **Phase 12:** Destination & content APIs
 - [ ] **Phase 13:** Frontend integration
 - [ ] **Phase 14:** End-to-end testing
 
@@ -197,3 +197,23 @@ Tourist reviews with 1–5 star ratings, automated property average rating aggre
 | `PUT` | `/api/reviews/:id` | Owner / Admin | Updates a review's rating and comment; triggers live property rating recalculation |
 | `DELETE` | `/api/reviews/:id` | Owner / Admin | Deletes a review; triggers live property rating recalculation |
 | `PATCH` | `/api/admin/reviews/:id/moderation` | Admin only | Hides or restores a review (`status: 'approved' \| 'hidden'`) and updates property metrics |
+
+---
+
+## 15. Destination & Content APIs (Phase 12)
+Curated Sikkim travel destinations (Lachen, Lachung, Yumthang Valley, Zero Point, Gurudongmar Lake, Dzongu, etc.) with related guides cross-linking, district filtering, and admin content management:
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/destinations` | Public | Lists all active destinations with filters (`district`, `tag`, `search`, `sort`, `page`, `limit`) |
+| `GET` | `/api/destinations/:slug` | Public | Retrieves destination detail with populated `relatedDestinations` and `nearbyStays` in that region |
+| `POST` | `/api/destinations` | Admin only | Creates a new destination guide with auto-generated slug |
+| `PUT` | `/api/destinations/:id` | Admin only | Updates destination information, highlights, permits, and images |
+| `DELETE` | `/api/destinations/:id` | Admin only | Soft-deactivates destination (`isActive: false`) or permanently deletes with `?permanent=true` |
+
+* **Seed Curated Sikkim Destinations:**
+  ```powershell
+  cd backend
+  node scripts/seedDestinations.js
+  ```
+

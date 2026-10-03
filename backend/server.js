@@ -15,6 +15,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const bookingRoutes = require("./routes/bookingRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const destinationRoutes = require("./routes/destinationRoutes");
 
 // 1. Load environment variables from .env file
 dotenv.config();
@@ -104,6 +105,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/destinations", destinationRoutes);
 
 // 9. 404 Handler for undefined routes
 app.use((req, res, next) => {
