@@ -73,7 +73,7 @@ Stored in `backend/.env`:
 - [x] **Phase 6:** Public property listing APIs
 - [x] **Phase 7:** Owner property submission pipeline
 - [x] **Phase 8:** Admin approval/rejection moderation
-- [ ] **Phase 9:** Multer + Cloudinary image upload
+- [x] **Phase 9:** Multer + Cloudinary image upload
 - [ ] **Phase 10:** Customer booking system
 - [ ] **Phase 11:** Property review system
 - [ ] **Phase 12:** Destination & content APIs
@@ -158,6 +158,17 @@ Endpoints powering the Admin Console in `backend/routes/adminRoutes.js`:
 | `GET` | `/api/admin/partners` | Admin only | Retrieves all registered hosts with property counts and verification status |
 | `PATCH` | `/api/admin/partners/:userId/status` | Admin only | Approves, rejects, or suspends partner verification accounts |
 | `GET` | `/api/admin/stats` | Admin only | Provides dashboard overview analytics (properties, moderation queue, verified hosts, bookings) |
+
+---
+
+## 12. Media Upload Pipeline (Phase 9)
+Multipart form upload endpoints in `backend/routes/uploadRoutes.js` supporting Cloudinary CDN with automatic local disk fallback:
+
+| Method | Endpoint | Access | Payload | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `POST` | `/api/upload/image` | Authenticated | `image` (file, max 5MB), `folder` (optional) | Uploads single image (avatars, property covers, destination photos) |
+| `POST` | `/api/upload/gallery` | Authenticated | `images` (array of up to 10 files), `category` | Uploads multiple photos formatted for property/room galleries |
+
 
 
 

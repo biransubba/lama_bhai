@@ -1,3 +1,4 @@
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
@@ -11,6 +12,7 @@ const authRoutes = require("./routes/authRoutes");
 const propertyRoutes = require("./routes/propertyRoutes");
 const ownerRoutes = require("./routes/ownerRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 
 // 1. Load environment variables from .env file
 dotenv.config();
@@ -91,11 +93,13 @@ app.get("/", (req, res) => {
   res.send("Welcome to Lama Bhaila Tourism API. Health check available at /api/health");
 });
 
-// 8. Application API Routes
+// 8. Application API Routes & Static Assets
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/owner", ownerRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/upload", uploadRoutes);
 
 // 9. 404 Handler for undefined routes
 app.use((req, res, next) => {
