@@ -66,7 +66,7 @@ Stored in `backend/.env`:
 ## 5. Development Phases Log
 - [x] **Phase 0:** Repository inspection & architectural blueprint
 - [x] **Phase 1:** System architecture setup & backend skeleton (Express, CORS, Morgan, Error handlers, Health check)
-- [ ] **Phase 2:** Database design & Mongoose schemas (User, Property, Room, Booking, Review, Destination)
+- [x] **Phase 2:** Database design & Mongoose schemas (User, Property, Room, Booking, Review, Destination)
 - [ ] **Phase 3:** MongoDB connection setup
 - [ ] **Phase 4:** Authentication engine (Passport.js & Sessions)
 - [ ] **Phase 5:** Role-based authorization middleware
@@ -79,3 +79,18 @@ Stored in `backend/.env`:
 - [ ] **Phase 12:** Destination & content APIs
 - [ ] **Phase 13:** Frontend integration
 - [ ] **Phase 14:** End-to-end testing
+
+---
+
+## 6. Database Models (Mongoose)
+The schemas in `backend/models/` map 1:1 with the Sikkim tourism workflow and existing frontend contracts:
+
+| Model | File | Primary Responsibilities | Key Relationships & Indexes |
+| :--- | :--- | :--- | :--- |
+| **`User`** | `backend/models/User.js` | Tourist/Customer, Owner/Partner, Admin authentication & profiles | Role-based (`tourist`, `owner`, `admin`), Partner profile verification |
+| **`Property`** | `backend/models/Property.js` | Homestays, resorts, hotels across Sikkim districts | References `owner` (User), virtual `rooms` and `reviews`, compound search index |
+| **`Room`** | `backend/models/Room.js` | Individual room units with capacity, bed types, pricing | References `property` (Property), indexed by availability & active state |
+| **`Booking`** | `backend/models/Booking.js` | Reservations for stays, cars, bikes, permits, and trip planning | References `property`, `room`, `user`, `partner`; auto-generates `bookingRequestId` |
+| **`Review`** | `backend/models/Review.js` | Tourist feedback & 1–5 star ratings | Unique compound index `(property, user)`, auto-calculates property rating |
+| **`Destination`** | `backend/models/Destination.js` | Curated Sikkim travel guides (Lachen, Lachung, Yumthang, etc.) | SEO `slug` index, district filters, text search on highlights & attractions |
+
