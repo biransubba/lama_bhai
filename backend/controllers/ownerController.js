@@ -53,7 +53,13 @@ exports.createProperty = async (req, res, next) => {
       },
       price: Number(price),
       image: image.trim(),
-      gallery: Array.isArray(gallery) ? gallery : [],
+      gallery: Array.isArray(gallery)
+        ? gallery.map((item) =>
+            typeof item === 'string'
+              ? { src: item.trim(), alt: name.trim(), category: 'Property' }
+              : item
+          )
+        : [],
       amenities: Array.isArray(amenities) ? amenities : [],
       status: req.user.role === 'admin' && req.body.status ? req.body.status : 'pending',
       active: true,

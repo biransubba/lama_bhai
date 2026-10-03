@@ -78,7 +78,7 @@ Stored in `backend/.env`:
 - [x] **Phase 11:** Property review system
 - [x] **Phase 12:** Destination & content APIs
 - [x] **Phase 13:** Frontend integration
-- [ ] **Phase 14:** End-to-end testing
+- [x] **Phase 14:** End-to-end testing
 
 ---
 
@@ -232,3 +232,28 @@ The React 19 frontend is connected to the Express/MongoDB backend through a cent
   - `src/pages/ManageBooking.jsx`: Looks up customer reservations both in local cache and across remote MongoDB via `GET /api/bookings/:id`.
 - **Zero-Failure Offline & Fallback Resiliency:**
   - If the backend is temporarily offline or in transition, the React application seamlessly falls back to local repositories without throwing uncaught errors or interrupting user navigation.
+
+---
+
+## 17. End-to-End System Testing & Verification (Phase 14)
+The backend test suite (`backend/scripts/testEndToEnd.js`) executes a full 12-step validation cycle covering all actors and lifecycles:
+
+1. **System Health Check (`GET /api/health`):** Verifies Express server and MongoDB Atlas/Local connection.
+2. **Tourist Registration & Authentication:** Validates bcrypt password hashing and session cookie generation.
+3. **Admin Onboarding & Session:** Establishes super-admin privileges and route guard bypasses.
+4. **Partner Registration & Admin Approval:** Enforces partner moderation workflow (`/api/admin/partners/:id/status`).
+5. **Homestay Submission & Room Inventory:** Owner submits property and configures capacity/bed types.
+6. **Admin Moderation & Approval:** Approves property for public visibility.
+7. **Public Discovery & SEO Slugs:** Filters by district (`North Sikkim`) and retrieves property by unique slug.
+8. **Customer Reservation Lifecycle:** Submits booking, auto-calculates nights/pricing, issues `LB-ST-XXXX` tracking code, and populates partner inbox.
+9. **Review & Rating Aggregation:** Submits 5-star review and recalculates property rating and review count.
+10. **Admin Platform Analytics (`GET /api/admin/stats`):** Assesses live totals for properties, approved hosts, and bookings.
+11. **Customer Cancellation Flow:** Cancels reservation with cancellation reason audit.
+12. **Session Invalidation:** Verifies session destruction and cookie clearing on logout.
+
+* **Run the Complete End-to-End Test Suite:**
+  ```powershell
+  cd backend
+  node scripts/testEndToEnd.js
+  ```
+
