@@ -10,6 +10,7 @@ const passport = require("./config/passport");
 const authRoutes = require("./routes/authRoutes");
 const propertyRoutes = require("./routes/propertyRoutes");
 const ownerRoutes = require("./routes/ownerRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 // 1. Load environment variables from .env file
 dotenv.config();
@@ -94,6 +95,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/owner", ownerRoutes);
+app.use("/api/admin", adminRoutes);
 
 // 9. 404 Handler for undefined routes
 app.use((req, res, next) => {

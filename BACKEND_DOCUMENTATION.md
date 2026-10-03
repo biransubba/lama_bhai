@@ -72,7 +72,7 @@ Stored in `backend/.env`:
 - [x] **Phase 5:** Role-based authorization middleware
 - [x] **Phase 6:** Public property listing APIs
 - [x] **Phase 7:** Owner property submission pipeline
-- [ ] **Phase 8:** Admin approval/rejection moderation
+- [x] **Phase 8:** Admin approval/rejection moderation
 - [ ] **Phase 9:** Multer + Cloudinary image upload
 - [ ] **Phase 10:** Customer booking system
 - [ ] **Phase 11:** Property review system
@@ -145,6 +145,20 @@ Endpoints powering the Partner Portal in `backend/routes/ownerRoutes.js`:
 | `POST` | `/api/owner/properties/:id/rooms` | Owner / Admin | Adds a new room type to the owner's property |
 | `PUT` | `/api/owner/rooms/:roomId` | Owner / Admin | Updates room capacity, pricing, amenities, and availability status |
 | `DELETE` | `/api/owner/rooms/:roomId` | Owner / Admin | Deactivates room from property inventory |
+
+---
+
+## 11. Admin Moderation & Operations APIs (Phase 8)
+Endpoints powering the Admin Console in `backend/routes/adminRoutes.js`:
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/admin/properties` | Admin only | Lists all properties across Sikkim with status filters (`pending`, `approved`, `rejected`, `all`) |
+| `PATCH` | `/api/admin/properties/:id/status` | Admin only | Approves or rejects property submissions; immediately controls public discovery visibility |
+| `GET` | `/api/admin/partners` | Admin only | Retrieves all registered hosts with property counts and verification status |
+| `PATCH` | `/api/admin/partners/:userId/status` | Admin only | Approves, rejects, or suspends partner verification accounts |
+| `GET` | `/api/admin/stats` | Admin only | Provides dashboard overview analytics (properties, moderation queue, verified hosts, bookings) |
+
 
 
 
