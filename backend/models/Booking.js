@@ -157,13 +157,12 @@ const bookingSchema = new mongoose.Schema(
 );
 
 // Auto-generate friendly unique bookingRequestId before saving if not present
-bookingSchema.pre('save', function (next) {
+bookingSchema.pre('save', function () {
   if (!this.bookingRequestId) {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
     this.bookingRequestId = `LB-${this.service ? this.service.slice(0, 2).toUpperCase() : 'BK'}-${timestamp}-${random}`;
   }
-  next();
 });
 
 // Compound indexes for performant partner & admin queries

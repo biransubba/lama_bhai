@@ -74,7 +74,7 @@ Stored in `backend/.env`:
 - [x] **Phase 7:** Owner property submission pipeline
 - [x] **Phase 8:** Admin approval/rejection moderation
 - [x] **Phase 9:** Multer + Cloudinary image upload
-- [ ] **Phase 10:** Customer booking system
+- [x] **Phase 10:** Customer booking system
 - [ ] **Phase 11:** Property review system
 - [ ] **Phase 12:** Destination & content APIs
 - [ ] **Phase 13:** Frontend integration
@@ -168,6 +168,22 @@ Multipart form upload endpoints in `backend/routes/uploadRoutes.js` supporting C
 | :--- | :--- | :--- | :--- | :--- |
 | `POST` | `/api/upload/image` | Authenticated | `image` (file, max 5MB), `folder` (optional) | Uploads single image (avatars, property covers, destination photos) |
 | `POST` | `/api/upload/gallery` | Authenticated | `images` (array of up to 10 files), `category` | Uploads multiple photos formatted for property/room galleries |
+
+---
+
+## 13. Customer Booking System (Phase 10)
+End-to-end reservation lifecycle across Stays, Vehicles, Bikes, and Permits:
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/bookings` | Public (Guest / User) | Submits booking request, auto-computes nights/pricing, assigns partner, generates `LB-ST-XXXX` |
+| `GET` | `/api/bookings/my` | Authenticated | Retrieves current logged-in tourist's personal reservation history |
+| `GET` | `/api/bookings/:id` | Public / Private | Looks up booking reservation by tracking code (`LB-ST-...`) or ObjectId |
+| `PATCH` | `/api/bookings/:id/cancel` | Customer / Admin | Cancels booking with reason and metadata tracking |
+| `GET` | `/api/owner/bookings` | Host / Admin | Retrieves reservation requests assigned to the logged-in partner |
+| `PATCH` | `/api/owner/bookings/:id/status` | Host / Admin | Updates reservation status (`Contacted`, `In Progress`, `Confirmed`, `Completed`, `Cancelled`) |
+| `GET` | `/api/admin/bookings` | Admin only | Platform-wide master bookings view with status, service filters, and pagination |
+
 
 
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ownerController = require('../controllers/ownerController');
+const bookingController = require('../controllers/bookingController');
 const {
   protect,
   authorize,
@@ -23,5 +24,9 @@ router.delete('/properties/:id', ownerController.deleteProperty);
 router.post('/properties/:id/rooms', ownerController.addRoom);
 router.put('/rooms/:roomId', ownerController.updateRoom);
 router.delete('/rooms/:roomId', ownerController.deleteRoom);
+
+// Booking Requests Management for Host
+router.get('/bookings', bookingController.getOwnerBookings);
+router.patch('/bookings/:id/status', bookingController.updateBookingStatusByOwner);
 
 module.exports = router;
