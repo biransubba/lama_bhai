@@ -75,7 +75,7 @@ Stored in `backend/.env`:
 - [x] **Phase 8:** Admin approval/rejection moderation
 - [x] **Phase 9:** Multer + Cloudinary image upload
 - [x] **Phase 10:** Customer booking system
-- [ ] **Phase 11:** Property review system
+- [x] **Phase 11:** Property review system
 - [ ] **Phase 12:** Destination & content APIs
 - [ ] **Phase 13:** Frontend integration
 - [ ] **Phase 14:** End-to-end testing
@@ -184,10 +184,16 @@ End-to-end reservation lifecycle across Stays, Vehicles, Bikes, and Permits:
 | `PATCH` | `/api/owner/bookings/:id/status` | Host / Admin | Updates reservation status (`Contacted`, `In Progress`, `Confirmed`, `Completed`, `Cancelled`) |
 | `GET` | `/api/admin/bookings` | Admin only | Platform-wide master bookings view with status, service filters, and pagination |
 
+---
 
+## 14. Property Review & Rating System (Phase 11)
+Tourist reviews with 1–5 star ratings, automated property average rating aggregation, user update/delete, and admin moderation:
 
-
-
-
-
-
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/properties/:propertyId/reviews` | Public | Retrieves approved reviews for a property (supports pagination: `?page=1&limit=10`) |
+| `POST` | `/api/properties/:propertyId/reviews` | Authenticated (Tourist/User) | Creates a review for a property (enforces unique 1-review-per-tourist, re-aggregates rating) |
+| `GET` | `/api/reviews/:id` | Public | Fetches a single review by its ID with populated user and property details |
+| `PUT` | `/api/reviews/:id` | Owner / Admin | Updates a review's rating and comment; triggers live property rating recalculation |
+| `DELETE` | `/api/reviews/:id` | Owner / Admin | Deletes a review; triggers live property rating recalculation |
+| `PATCH` | `/api/admin/reviews/:id/moderation` | Admin only | Hides or restores a review (`status: 'approved' \| 'hidden'`) and updates property metrics |
