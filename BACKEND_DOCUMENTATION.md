@@ -67,7 +67,7 @@ Stored in `backend/.env`:
 - [x] **Phase 0:** Repository inspection & architectural blueprint
 - [x] **Phase 1:** System architecture setup & backend skeleton (Express, CORS, Morgan, Error handlers, Health check)
 - [x] **Phase 2:** Database design & Mongoose schemas (User, Property, Room, Booking, Review, Destination)
-- [ ] **Phase 3:** MongoDB connection setup
+- [x] **Phase 3:** MongoDB connection setup
 - [ ] **Phase 4:** Authentication engine (Passport.js & Sessions)
 - [ ] **Phase 5:** Role-based authorization middleware
 - [ ] **Phase 6:** Public property listing APIs

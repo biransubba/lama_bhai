@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
+const mongoose = require("mongoose");
+const connectDB = require("./config/db");
 
 // 1. Load environment variables from .env file
 dotenv.config();
@@ -11,7 +13,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:1234";
 
-// 3. Foundational Middleware
+// 3. Connect to Database
+connectDB().catch((err) => {
+  console.error("Initial MongoDB connection failed. Server will continue with degraded DB status:", err.message);
+});
+
+// 4. Foundational Middleware
 // Logging incoming HTTP requests for development visibility
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
@@ -31,13 +38,19 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 4. Base & Health Check Route
+// 5. Base & Health Check Route
 app.get("/api/health", (req, res) => {
+  const isDbConnected = mongoose.connection.readyState === 1;
   res.status(200).json({
     status: "ok",
     message: "Lama Bhaila Tourism Backend is running smoothly!",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
+    database: {
+      status: isDbConnected ? "connected" : "disconnected",
+      host: mongoose.connection.host || null,
+      name: mongoose.connection.name || null,
+    },
   });
 });
 
@@ -46,7 +59,7 @@ app.get("/", (req, res) => {
   res.send("Welcome to Lama Bhaila Tourism API. Health check available at /api/health");
 });
 
-// 5. 404 Handler for undefined routes
+// 6. 404 Handler for undefined routes
 app.use((req, res, next) => {
   res.status(404).json({
     success: false,
@@ -55,7 +68,7 @@ app.use((req, res, next) => {
   });
 });
 
-// 6. Centralized Error Handler Middleware
+// 7. Centralized Error Handler Middleware
 // When any route passes an error to next(err), it gets handled here
 app.use((err, req, res, next) => {
   console.error("Internal Server Error:", err);
@@ -66,7 +79,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 7. Start listening for incoming network requests
+// 8. Start listening for incoming network requests
 const server = app.listen(PORT, () => {
   console.log(`===============================================`);
   console.log(` Lama Bhaila Tourism Server is running!`);
@@ -78,3 +91,4 @@ const server = app.listen(PORT, () => {
 });
 
 module.exports = { app, server };
+
