@@ -70,7 +70,7 @@ Stored in `backend/.env`:
 - [x] **Phase 3:** MongoDB connection setup
 - [x] **Phase 4:** Authentication engine (Passport.js & Sessions)
 - [x] **Phase 5:** Role-based authorization middleware
-- [ ] **Phase 6:** Public property listing APIs
+- [x] **Phase 6:** Public property listing APIs
 - [ ] **Phase 7:** Owner property submission pipeline
 - [ ] **Phase 8:** Admin approval/rejection moderation
 - [ ] **Phase 9:** Multer + Cloudinary image upload
@@ -117,6 +117,19 @@ Reusable route guards implemented in `backend/middleware/authMiddleware.js`:
 | **`authorize(...roles)`** | Role-restricted endpoints (e.g. `authorize('owner', 'admin')`) | Allows only listed roles; returns `403 Forbidden` if user role is not authorized |
 | **`ensureApprovedOwner`** | Partner listing creation & inventory management | Blocks non-owners and suspended/rejected partners with `403 Forbidden`; automatically grants bypass to `admin` |
 | **`optionalAuth`** | Public listings with personalized tourist data | Passes through without blocking unauthenticated guests, but attaches `req.user` if logged in |
+
+---
+
+## 9. Public Property Discovery APIs (Phase 6)
+Public endpoints powering the Sikkim stays directory, homestay cards, filters, and detail pages:
+
+| Method | Endpoint | Query Parameters | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/properties` | `district`, `type`, `minPrice`, `maxPrice`, `search`, `amenities`, `sort`, `page`, `limit` | Paginated search across active, approved Sikkim homestays, hotels, and resorts |
+| `GET` | `/api/properties/featured` | None | Retrieves top-rated and featured properties (curated for homepage showcase) |
+| `GET` | `/api/properties/:slug` | None (slug or ObjectId) | Full detail view with populated owner profile, active rooms, and approved reviews |
+| `GET` | `/api/properties/:id/rooms` | None (:id or :slug) | Room inventory for a specific property including bed types, pricing, and availability |
+
 
 
 
