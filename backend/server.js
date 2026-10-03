@@ -3,7 +3,11 @@ const cors = require("cors");
 const morgan = require("morgan");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
+const session = require("express-session");
+const { MongoStore } = require("connect-mongo");
 const connectDB = require("./config/db");
+const passport = require("./config/passport");
+const authRoutes = require("./routes/authRoutes");
 
 // 1. Load environment variables from .env file
 dotenv.config();
@@ -38,7 +42,32 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 5. Base & Health Check Route
+// 5. Session Middleware (Persistent via MongoDB)
+const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/lama-bhaila";
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "lama_bhaila_dev_session_secret_btech_2026",
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: mongoURI,
+      collectionName: "sessions",
+      ttl: 7 * 24 * 60 * 60, // 7 days in seconds
+    }),
+    cookie: {
+      httpOnly: true, // Prevents client-side scripts from reading the cookie (anti-XSS)
+      secure: process.env.NODE_ENV === "production", // HTTPS in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    },
+  })
+);
+
+// 6. Passport.js Authentication Engine
+app.use(passport.initialize());
+app.use(passport.session());
+
+// 7. Base & Health Check Route
 app.get("/api/health", (req, res) => {
   const isDbConnected = mongoose.connection.readyState === 1;
   res.status(200).json({
@@ -59,7 +88,10 @@ app.get("/", (req, res) => {
   res.send("Welcome to Lama Bhaila Tourism API. Health check available at /api/health");
 });
 
-// 6. 404 Handler for undefined routes
+// 8. Application API Routes
+app.use("/api/auth", authRoutes);
+
+// 9. 404 Handler for undefined routes
 app.use((req, res, next) => {
   res.status(404).json({
     success: false,
@@ -68,7 +100,7 @@ app.use((req, res, next) => {
   });
 });
 
-// 7. Centralized Error Handler Middleware
+// 10. Centralized Error Handler Middleware
 // When any route passes an error to next(err), it gets handled here
 app.use((err, req, res, next) => {
   console.error("Internal Server Error:", err);
@@ -79,7 +111,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 8. Start listening for incoming network requests
+// 11. Start listening for incoming network requests
 const server = app.listen(PORT, () => {
   console.log(`===============================================`);
   console.log(` Lama Bhaila Tourism Server is running!`);
@@ -87,8 +119,10 @@ const server = app.listen(PORT, () => {
   console.log(` Environment: ${process.env.NODE_ENV || "development"}`);
   console.log(` Client URL allowed: ${CLIENT_URL}`);
   console.log(` Health check: http://localhost:${PORT}/api/health`);
+  console.log(` Auth endpoints: http://localhost:${PORT}/api/auth`);
   console.log(`===============================================`);
 });
 
 module.exports = { app, server };
+
 

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
@@ -15,7 +16,7 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       match: [
-        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
+        /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/,
         'Please provide a valid email address',
       ],
     },
@@ -86,6 +87,21 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+// Pre-save hook: Hash password before saving if modified or new
+userSchema.pre('save', async function () {
+  if (!this.isModified('password')) {
+    return;
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+// Instance method to compare candidate password with hashed password
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
 // Helpful instance method to check if user has a specific role
 userSchema.methods.hasRole = function (role) {
   return this.role === role;
@@ -99,6 +115,14 @@ userSchema.methods.isApprovedOwner = function () {
   );
 };
 
+// Sanitize user object for JSON serialization (never leak password)
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
+
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;
+

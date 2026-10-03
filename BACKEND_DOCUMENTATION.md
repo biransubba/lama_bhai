@@ -68,7 +68,7 @@ Stored in `backend/.env`:
 - [x] **Phase 1:** System architecture setup & backend skeleton (Express, CORS, Morgan, Error handlers, Health check)
 - [x] **Phase 2:** Database design & Mongoose schemas (User, Property, Room, Booking, Review, Destination)
 - [x] **Phase 3:** MongoDB connection setup
-- [ ] **Phase 4:** Authentication engine (Passport.js & Sessions)
+- [x] **Phase 4:** Authentication engine (Passport.js & Sessions)
 - [ ] **Phase 5:** Role-based authorization middleware
 - [ ] **Phase 6:** Public property listing APIs
 - [ ] **Phase 7:** Owner property submission pipeline
@@ -93,4 +93,17 @@ The schemas in `backend/models/` map 1:1 with the Sikkim tourism workflow and ex
 | **`Booking`** | `backend/models/Booking.js` | Reservations for stays, cars, bikes, permits, and trip planning | References `property`, `room`, `user`, `partner`; auto-generates `bookingRequestId` |
 | **`Review`** | `backend/models/Review.js` | Tourist feedback & 1–5 star ratings | Unique compound index `(property, user)`, auto-calculates property rating |
 | **`Destination`** | `backend/models/Destination.js` | Curated Sikkim travel guides (Lachen, Lachung, Yumthang, etc.) | SEO `slug` index, district filters, text search on highlights & attractions |
+
+---
+
+## 7. Authentication Engine (Phase 4)
+The authentication layer uses Passport.js local strategy with MongoDB-backed sessions via `connect-mongo`:
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/register` | Public | Registers a new tourist or partner/owner with bcrypt hashed password and initializes session |
+| `POST` | `/api/auth/login` | Public | Authenticates credentials, creates signed session cookie, and updates `lastLogin` |
+| `POST` | `/api/auth/logout` | Authenticated | Destroys server-side session in MongoDB and clears `connect.sid` cookie |
+| `GET` | `/api/auth/me` | Authenticated | Returns currently authenticated user details, partner profile, and role |
+
 
