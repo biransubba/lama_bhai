@@ -1,0 +1,110 @@
+@import '../components/Destinations.css';
+
+.destinations-page {
+  padding-bottom: var(--space-xl);
+}
+
+.dest-hero {
+  padding: var(--space-xl) var(--space-md) var(--space-lg);
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.dest-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-peach-deep);
+  background: var(--color-peach-light);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  margin-bottom: var(--space-xs);
+}
+
+.dest-hero__heading {
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 4vw, 3.2rem);
+  font-weight: 600;
+  color: var(--color-navy);
+  margin-bottom: var(--space-sm);
+  max-width: 20ch;
+  line-height: 1.15;
+}
+
+.dest-hero__sub {
+  font-size: 1.08rem;
+  color: var(--color-text-muted);
+  max-width: 58ch;
+  line-height: 1.6;
+}
+
+.dest-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--space-md) var(--space-lg);
+}
+
+.dest-content__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+.dest-page-plan-cta {
+  max-width: 1280px;
+  margin: var(--space-lg) auto 0;
+  padding: 0 var(--space-md);
+}
+
+.dest-page-plan-cta__box {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  box-shadow: 0 10px 30px -12px rgba(23, 36, 58, 0.08);
+}
+
+.dest-page-plan-cta__box h2 {
+  font-size: 1.8rem;
+  font-family: var(--font-display);
+}
+
+.dest-page-plan-cta__box p {
+  color: var(--color-text-muted);
+  max-width: 48ch;
+}
+
+@media (max-width: 1024px) {
+  .dest-content__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .dest-content__grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dest-hero {
+    padding: var(--space-md) var(--space-xs) var(--space-sm);
+  }
+  .dest-content {
+    padding: 0 var(--space-xs) var(--space-md);
+  }
+  .dest-page-plan-cta {
+    padding: 0 var(--space-xs);
+  }
+}

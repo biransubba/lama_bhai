@@ -1,0 +1,83 @@
+/* OptimizedImage.css */
+.optimized-image-wrap {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  background-color: #EDE4D8; /* warm muted tint matching editorial palette */
+  width: 100%;
+}
+
+.optimized-image-wrap picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.optimized-image__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity;
+}
+
+.optimized-image__img.is-loading {
+  opacity: 0;
+}
+
+.optimized-image__img.is-loaded {
+  opacity: 1;
+}
+
+/* Subtle editorial skeleton / shimmer placeholder while loading */
+.optimized-image__skeleton {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(248, 243, 236, 0.4) 0%,
+    rgba(243, 209, 195, 0.35) 50%,
+    rgba(248, 243, 236, 0.4) 100%
+  );
+  background-size: 200% 100%;
+  animation: optImgShimmer 1.8s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes optImgShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Fallback placeholder when image is unavailable or errored */
+.optimized-image__fallback {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #F4ECE1;
+  color: #8C8275;
+  font-family: var(--font-body, sans-serif);
+  font-size: 0.85rem;
+  z-index: 2;
+}
+
+.optimized-image__fallback svg {
+  color: var(--color-peach-deep, #C1622D);
+  opacity: 0.8;
+}

@@ -1,0 +1,209 @@
+@import './tokens.css';
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+* {
+  min-width: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+html, body {
+  overflow-x: clip;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-cream);
+  color: var(--color-text);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  color: var(--color-navy);
+  line-height: 1.15;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+}
+
+h3 {
+  font-size: var(--font-size-h3);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+img, svg {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+img {
+  display: block;
+}
+
+svg {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+input, select, textarea, button {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-peach-deep);
+  outline-offset: 2px;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none;
+  outline-offset: 0;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-peach);
+  color: var(--color-navy);
+  font-weight: 700;
+  padding: 12px 22px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.btn-primary:hover {
+  background: var(--color-peach-hover);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-navy);
+  color: var(--color-navy);
+  font-weight: 700;
+  padding: 11px 20px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s var(--ease), color 0.2s var(--ease);
+}
+
+.btn-secondary:hover {
+  background: var(--color-peach-soft);
+}
+
+/* ==========================================================================
+   Creative Peach Elliptical Back Navigation Pill System
+   ========================================================================== */
+.back-pill-btn,
+.dest-detail__back,
+.journey-detail__back,
+.car-detail__back,
+.bike-detail__back,
+.vehicle-detail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 18px 7px 10px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #FFF9F6 0%, #FEECE4 100%);
+  border: 1.5px solid var(--color-peach);
+  color: var(--color-peach-deep);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  margin-bottom: var(--space-lg);
+  box-shadow: 0 3px 10px rgba(232, 165, 140, 0.22), 0 1px 3px rgba(23, 36, 58, 0.05);
+  transition: all 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  width: fit-content;
+}
+
+.back-pill-btn svg,
+.dest-detail__back svg,
+.journey-detail__back svg,
+.car-detail__back svg,
+.bike-detail__back svg,
+.vehicle-detail__back svg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  border-radius: 50%;
+  background: var(--color-peach);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(193, 98, 45, 0.25);
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.back-pill-btn:hover,
+.dest-detail__back:hover,
+.journey-detail__back:hover,
+.car-detail__back:hover,
+.bike-detail__back:hover,
+.vehicle-detail__back:hover {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF0EA 100%);
+  border-color: var(--color-peach-hover);
+  color: #9C3E14;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(232, 165, 140, 0.38), 0 2px 6px rgba(193, 98, 45, 0.12);
+  text-decoration: none;
+  opacity: 1 !important;
+}
+
+.back-pill-btn:hover svg,
+.dest-detail__back:hover svg,
+.journey-detail__back:hover svg,
+.car-detail__back:hover svg,
+.bike-detail__back:hover svg,
+.vehicle-detail__back:hover svg {
+  background: var(--color-peach-hover);
+  transform: translateX(-3px);
+}
+
+.back-pill-btn:active,
+.dest-detail__back:active,
+.journey-detail__back:active,
+.car-detail__back:active,
+.bike-detail__back:active,
+.vehicle-detail__back:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 6px rgba(232, 165, 140, 0.2);
+}

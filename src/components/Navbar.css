@@ -1,0 +1,373 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--color-cream);
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.navbar--scrolled {
+  background: rgba(253, 251, 247, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 12px rgba(15, 24, 38, 0.06);
+}
+
+.navbar__inner {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 6px 2rem 6px 1.5rem;
+  min-height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  box-sizing: border-box;
+  transition: min-height 0.25s ease, padding 0.25s ease;
+}
+
+.navbar__brand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+  margin: 0;
+  padding: 0;
+  gap: 14px;
+  margin-right: 1.5rem; /* Guarantees brand NEVER touches the Home navigation section */
+  transition: opacity 0.2s ease;
+}
+
+.navbar__brand:hover {
+  opacity: 0.92;
+}
+
+/* Plaque container: strictly housed inside navbar with zero line crossing */
+.navbar__brand-plaque {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  margin: 0;
+  padding: 0;
+  transform: none;
+}
+
+/* Plaque Style: Clean Transparent (Seamless - Default) */
+.navbar__brand-plaque--transparent {
+  background: transparent;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+}
+
+/* Master Brand Typography (Crisp Vector Web Fonts) */
+.navbar__brand-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  user-select: none;
+}
+
+.navbar__brand-title {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+.navbar__brand-sub {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--color-peach-deep);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 3px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Plaque Style 3: Contained Luxury White Card */
+.navbar__brand-plaque--card {
+  background: #ffffff;
+  padding: 4px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(232, 224, 213, 0.95);
+  box-shadow: 0 2px 8px rgba(15, 24, 38, 0.05);
+}
+
+/* Plaque Style 4: Frosted Glass Plaque */
+.navbar__brand-plaque--glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 4px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 6px rgba(15, 24, 38, 0.04);
+}
+
+/* Shape specific border-radius overrides */
+.navbar__brand-plaque--rounded {
+  border-radius: 12px;
+}
+.navbar__brand-plaque--circle {
+  border-radius: 50%;
+  padding: 4px;
+}
+
+/* Base logo image style: fluid width, bold height, supports ALL shapes & wide landscape banners */
+.navbar__logo {
+  object-fit: contain;
+  object-position: left center;
+  display: block;
+  flex-shrink: 0;
+  max-width: 460px;
+  transition: transform 0.2s ease;
+  /* Size is locked and never decreases or compresses on scroll */
+}
+
+.navbar__logo--natural {
+  border-radius: 0;
+}
+
+.navbar__logo--rounded {
+  border-radius: 8px;
+}
+
+.navbar__logo--circle {
+  border-radius: 50%;
+}
+
+.navbar__brand:hover .navbar__brand-plaque {
+  transform: translateY(-1px);
+}
+
+.navbar__right {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  margin-left: auto;
+}
+
+.navbar__links {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.navbar__link {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  position: relative;
+  padding: 6px 0;
+  text-decoration: none;
+  transition: color 0.2s var(--ease);
+}
+
+.navbar__link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  height: 2px;
+  background: var(--color-peach-deep);
+  transition: width 0.25s var(--ease);
+}
+
+.navbar__link:hover::after,
+.navbar__link:focus-visible::after {
+  width: 100%;
+}
+
+.navbar__link--active {
+  color: var(--color-peach-deep);
+}
+
+.navbar__link--active::after {
+  width: 100%;
+}
+
+.navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.navbar__manage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  color: var(--color-navy);
+  border: 1.5px solid var(--color-peach-deep);
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: all 0.2s var(--ease);
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(23, 36, 58, 0.05);
+}
+
+.navbar__manage-btn:hover {
+  background: var(--color-peach);
+  color: var(--color-navy);
+  border-color: var(--color-peach);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(237, 106, 75, 0.2);
+}
+
+.navbar__manage-btn--active {
+  background: var(--color-peach);
+  color: var(--color-navy);
+  border-color: var(--color-peach-deep);
+}
+
+.navbar__cta {
+  background: var(--color-peach);
+  color: var(--color-navy);
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s var(--ease), transform 0.2s var(--ease);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.navbar__cta:hover,
+.navbar__cta:focus-visible {
+  background: var(--color-peach-hover);
+  transform: translateY(-1px);
+}
+
+.navbar__cta--drawer {
+  display: none;
+}
+
+.navbar__toggle {
+  display: none;
+  color: var(--color-navy);
+  flex-shrink: 0;
+  padding: 6px;
+}
+
+@media (max-width: 1060px) {
+  .navbar__logo {
+    max-height: 58px !important;
+    max-width: 260px !important;
+    width: auto !important;
+  }
+
+  .navbar__brand-plaque--landscape-fade {
+    max-width: 280px;
+    padding-right: 18px;
+  }
+
+  .navbar__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .navbar__cta--desktop {
+    display: none;
+  }
+
+  .navbar__cta--drawer {
+    display: block;
+    text-align: center;
+    margin-top: var(--space-xs);
+  }
+
+  .navbar__manage-btn {
+    padding: 7px 12px;
+    font-size: 0.82rem;
+  }
+
+  .navbar__links {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    background: var(--color-cream);
+    border-bottom: 1px solid var(--color-border);
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    gap: var(--space-xs);
+    max-height: calc(100vh - 72px);
+    overflow-y: auto;
+    transform: translateY(-8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.25s var(--ease), opacity 0.25s var(--ease);
+  }
+
+  .navbar__links--open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .navbar__link {
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .navbar__brand-title {
+    font-size: 1.28rem;
+  }
+
+  .navbar__brand-sub {
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar__logo {
+    max-height: 52px !important;
+    max-width: 180px !important;
+    width: auto !important;
+  }
+
+  .navbar__brand {
+    gap: 10px;
+    margin-right: 0.5rem;
+  }
+
+  .navbar__brand-title {
+    font-size: 1.15rem;
+  }
+
+  .navbar__brand-sub {
+    display: none; /* Hide subtitle on tiny mobile screens for clean fit */
+  }
+
+  .navbar__inner {
+    padding: 6px var(--space-sm);
+    min-height: 64px !important;
+  }
+
+  .navbar__manage-text {
+    display: none;
+  }
+
+  .navbar__manage-btn {
+    padding: 7px 10px;
+  }
+}

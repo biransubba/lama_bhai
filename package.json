@@ -1,0 +1,21 @@
+{
+  "name": "lama-bhai-tourism",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "start": "parcel index.html",
+    "build": "parcel build index.html"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "phosphor-react": "^1.4.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^6.30.6"
+  },
+  "devDependencies": {
+    "parcel": "^2.16.4"
+  }
+}

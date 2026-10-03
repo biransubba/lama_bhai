@@ -1,0 +1,477 @@
+/* ==========================================================================
+   Himalayan Seasons - 4K Real Photorealistic Cinematic Reel
+   Hardware-accelerated Ken Burns motion, 60 FPS performance, zero scroll lag
+   ========================================================================== */
+
+.him-cinema {
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: var(--space-xs) var(--space-md) var(--space-lg);
+  position: relative;
+  contain: content;
+}
+
+.him-cinema__container {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 48px -12px rgba(15, 24, 38, 0.28), 0 2px 6px rgba(15, 24, 38, 0.08);
+  border: 1px solid rgba(15, 24, 38, 0.14);
+  background: #09101d;
+}
+
+/* Widescreen Cinematic Stage */
+.him-cinema__screen {
+  position: relative;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   REAL PHOTOGRAPHIC CROSS-FADING LAYERS + KEN BURNS MOTION
+   -------------------------------------------------------------------------- */
+.him-cinema__photo-layer {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.him-cinema__photo-layer--active {
+  opacity: 1;
+  animation: kenBurnsMotion 14s ease-out infinite alternate;
+}
+
+@keyframes kenBurnsMotion {
+  0% {
+    transform: scale(1.02) translate3d(0, 0, 0);
+  }
+  100% {
+    transform: scale(1.08) translate3d(-1%, -1.2%, 0);
+  }
+}
+
+/* Cinematic Vignette & Atmospheric Gradients (Lightened for vibrant photo visibility) */
+.him-cinema__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(9, 16, 29, 0.45) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.him-cinema__gradient-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 90px;
+  background: linear-gradient(180deg, rgba(9, 16, 29, 0.72) 0%, rgba(9, 16, 29, 0.2) 65%, transparent 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.him-cinema__gradient-bottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 180px;
+  background: linear-gradient(0deg, rgba(9, 16, 29, 0.9) 0%, rgba(9, 16, 29, 0.6) 45%, transparent 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* --------------------------------------------------------------------------
+   FLUTTERING TIBETAN LUNGTA PRAYER FLAGS
+   -------------------------------------------------------------------------- */
+.him-cinema__flags-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0 16px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.him-cinema__flag {
+  width: 22px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  border-radius: 1px 1px 4px 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transform-origin: top center;
+  animation: realFlagFlutter 3.4s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes realFlagFlutter {
+  0% {
+    transform: rotate(0deg) skewY(0deg) scaleY(1);
+  }
+  25% {
+    transform: rotate(8deg) skewY(3deg) scaleY(0.95);
+  }
+  50% {
+    transform: rotate(-6deg) skewY(-2deg) scaleY(1.02);
+  }
+  75% {
+    transform: rotate(7deg) skewY(2deg) scaleY(0.97);
+  }
+  100% {
+    transform: rotate(-4deg) skewY(-1deg) scaleY(1.01);
+  }
+}
+
+.him-cinema__flag-symbol {
+  line-height: 1;
+  opacity: 0.8;
+}
+
+/* --------------------------------------------------------------------------
+   TOP CONTROLS & SEASON SWITCHER
+   -------------------------------------------------------------------------- */
+.him-cinema__top-controls {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 24px 24px 10px;
+}
+
+.him-cinema__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 24, 38, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 5px 14px;
+  border-radius: 999px;
+}
+
+.him-cinema__live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.him-cinema__eyebrow-text {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+/* Interactive Season Tabs */
+.him-cinema__season-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 24, 38, 0.6);
+  backdrop-filter: blur(10px);
+  padding: 4px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.him-cinema__season-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.him-cinema__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.him-cinema__tab:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.him-cinema__tab--active {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.him-cinema__tab-title {
+  font-weight: 700;
+}
+
+.him-cinema__tab-sub {
+  font-size: 0.65rem;
+  opacity: 0.8;
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   BOTTOM INFORMATION GLASS OVERLAY (NO CTA LINKS)
+   -------------------------------------------------------------------------- */
+.him-cinema__bottom-overlay {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 390px);
+  gap: 24px;
+  align-items: flex-end;
+  padding: 10px 24px 22px;
+}
+
+.him-cinema__scenic-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.him-cinema__location-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(15, 24, 38, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 999px;
+  width: fit-content;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.him-cinema__loc-text {
+  letter-spacing: 0.02em;
+}
+
+.him-cinema__loc-divider {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.him-cinema__loc-alt {
+  color: var(--color-peach-light);
+  font-weight: 800;
+}
+
+.him-cinema__headline {
+  font-size: clamp(1.4rem, 2.5vw, 2.1rem);
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+}
+
+.him-cinema__desc {
+  font-size: 0.86rem;
+  color: #e2e8f0;
+  line-height: 1.5;
+  max-width: 58ch;
+  margin: 0;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+/* Scenic Profile Box */
+.him-cinema__profile-box {
+  background: rgba(15, 24, 38, 0.68);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.him-cinema__profile-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.him-cinema__profile-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.him-cinema__profile-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.him-cinema__profile-data {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.him-cinema__profile-lbl {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.him-cinema__profile-val {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.him-cinema__profile-vista {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+/* --------------------------------------------------------------------------
+   TIMELINE PROGRESS SEGMENTS
+   -------------------------------------------------------------------------- */
+.him-cinema__progress-bar {
+  position: relative;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  padding: 0 24px 16px;
+}
+
+.him-cinema__progress-track {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.him-cinema__progress-fill {
+  height: 100%;
+  width: 0%;
+  background: #ffffff;
+  border-radius: 999px;
+}
+
+.him-cinema__progress-fill--animate {
+  animation: progressFill 5.5s linear forwards;
+}
+
+.him-cinema__progress-fill--paused {
+  width: 100%;
+}
+
+@keyframes progressFill {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   RESPONSIVE DESIGN
+   -------------------------------------------------------------------------- */
+@media (max-width: 992px) {
+  .him-cinema__bottom-overlay {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .him-cinema__top-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .him-cinema {
+    padding: var(--space-xs) var(--space-sm) var(--space-md);
+  }
+
+  .him-cinema__screen {
+    min-height: 480px;
+  }
+
+  .him-cinema__season-tabs {
+    width: 100%;
+    overflow-x: auto;
+    padding: 3px 6px;
+  }
+
+  .him-cinema__tab {
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+
+  .him-cinema__tab-sub {
+    display: none;
+  }
+
+  .him-cinema__flags-row {
+    padding: 0 8px;
+  }
+
+  .him-cinema__flag {
+    width: 15px;
+    height: 24px;
+    font-size: 0.5rem;
+  }
+
+  .him-cinema__profile-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}

@@ -1,0 +1,806 @@
+.stay-detail {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-md);
+}
+
+.stay-detail__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 18px 7px 10px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #FFF9F6 0%, #FEECE4 100%);
+  border: 1.5px solid var(--color-peach);
+  color: var(--color-peach-deep);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  margin-bottom: var(--space-lg);
+  box-shadow: 0 3px 10px rgba(232, 165, 140, 0.22), 0 1px 3px rgba(23, 36, 58, 0.05);
+  transition: all 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  width: fit-content;
+}
+
+.stay-detail__back-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--color-peach);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(193, 98, 45, 0.25);
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.stay-detail__back-text {
+  line-height: 1;
+}
+
+.stay-detail__back:hover {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF0EA 100%);
+  border-color: var(--color-peach-hover);
+  color: #9C3E14;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(232, 165, 140, 0.38), 0 2px 6px rgba(193, 98, 45, 0.12);
+  text-decoration: none;
+}
+
+.stay-detail__back:hover .stay-detail__back-arrow {
+  background: var(--color-peach-hover);
+  transform: translateX(-3px);
+}
+
+.stay-detail__back:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 6px rgba(232, 165, 140, 0.2);
+}
+
+.stay-detail__header {
+  margin: var(--space-lg) 0;
+}
+
+.stay-detail__type-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stay-detail__type {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-peach-deep);
+}
+
+.stay-detail__partner-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(23, 36, 58, 0.07);
+  color: var(--color-navy);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.stay-detail__header h1 {
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  margin: 8px 0;
+}
+
+.stay-detail__location {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-peach-deep);
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.stay-detail__section {
+  padding: var(--space-lg) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.stay-detail__section h2 {
+  font-size: 1.2rem;
+  margin-bottom: var(--space-sm);
+}
+
+.stay-detail__section p {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.stay-detail__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stay-detail__chip {
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--color-navy);
+}
+
+.stay-detail__gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.gallery-tile {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease);
+}
+
+.gallery-tile:hover,
+.gallery-tile:focus-visible {
+  transform: scale(0.98);
+}
+
+.gallery-tile img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.stay-detail__gallery-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.stay-detail__meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-bottom: var(--space-sm);
+}
+
+.stay-detail__meta-row .stay-detail__location {
+  margin: 0;
+}
+
+.stay-detail__booking-hero {
+  margin: var(--space-sm) 0 var(--space-lg);
+  padding: 18px 24px;
+  background: linear-gradient(135deg, rgba(232, 165, 140, 0.1) 0%, rgba(248, 243, 236, 0.85) 100%);
+  border: 1px solid rgba(224, 122, 95, 0.28);
+  border-left: 5px solid var(--color-peach-deep);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+
+.stay-detail__booking-hero-pricing {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 240px;
+}
+
+.stay-detail__booking-hero-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stay-detail__booking-hero-kicker {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-peach-deep);
+}
+
+.stay-detail__booking-hero-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.stay-detail__booking-hero-rate {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.stay-detail__booking-hero-currency {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.stay-detail__booking-hero-num {
+  font-family: var(--font-display, "Playfair Display", Georgia, serif);
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.stay-detail__booking-hero-unit {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.stay-detail__booking-hero-unpriced {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.stay-detail__booking-hero-caption {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.stay-detail__booking-hero-action {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.stay-detail__booking-hero-action .stay-detail__cta {
+  padding: 13px 26px;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.stay-detail__bottom-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: var(--space-xl) 0 var(--space-md);
+  margin-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.stay-detail__cta--secondary {
+  background: var(--color-peach);
+  color: var(--color-navy);
+  padding: 13px 26px;
+  font-size: 0.92rem;
+}
+
+.stay-detail__manage-link-wrap {
+  text-align: center;
+}
+
+.stay-detail__manage-link {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: color 0.2s var(--ease);
+}
+
+.stay-detail__manage-link:hover {
+  color: var(--color-navy);
+}
+
+@media (max-width: 680px) {
+  .stay-detail__booking-hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .stay-detail__booking-hero-action {
+    width: 100%;
+  }
+  .stay-detail__booking-hero-action .stay-detail__cta {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.stay-detail__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-peach);
+  color: var(--color-navy);
+  font-weight: 700;
+  padding: 14px 26px;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.stay-detail__cta:hover {
+  background: var(--color-peach-hover);
+  transform: translateY(-2px);
+}
+
+.stay-detail--notfound {
+  text-align: center;
+  padding-top: var(--space-2xl);
+}
+
+@media (max-width: 600px) {
+  .stay-detail__gallery {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.stay-detail__status--available {
+  color: var(--color-forest);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.stay-detail__status--unavailable {
+  color: var(--color-text-muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.stay-detail__sample-note {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin: var(--space-sm) 0;
+}
+
+.stay-detail__chip--offer {
+  background: var(--color-peach-soft);
+  color: var(--color-navy);
+}
+
+.stay-detail__cta:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.stay-detail__cta:disabled:hover {
+  background: var(--color-peach);
+  transform: none;
+}
+
+/* ==========================================================================
+   High-Converting Promotional Offer Banner & Showcase Cards
+   ========================================================================== */
+
+.stay-detail__hero-offer-banner {
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(224, 122, 95, 0.08) 0%, rgba(224, 122, 95, 0.16) 100%);
+  border: 1.5px solid rgba(224, 122, 95, 0.38);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stay-detail__hero-offer-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stay-detail__hero-offer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-peach-deep);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(199, 93, 58, 0.2);
+}
+
+.stay-detail__hero-offer-name {
+  font-size: 0.92rem;
+  color: var(--color-navy);
+  font-weight: 700;
+}
+
+.stay-detail__hero-offer-condition {
+  font-size: 0.78rem;
+  color: #8c3b1e;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.stay-detail__offers-section {
+  border-top: 2px solid rgba(224, 122, 95, 0.2);
+  padding-top: var(--space-lg);
+  margin-top: var(--space-xl);
+}
+
+.stay-detail__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stay-detail__section-tag {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-peach-deep);
+  background: var(--color-peach-light);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(224, 122, 95, 0.3);
+}
+
+.stay-offers-showcase {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.stay-offer-card {
+  background: #FFFFFF;
+  border: 1.5px solid rgba(224, 122, 95, 0.32);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: 0 4px 16px rgba(15, 24, 38, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stay-offer-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(224, 122, 95, 0.16);
+  border-color: var(--color-peach-deep);
+}
+
+.stay-offer-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stay-offer-card__badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stay-offer-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--color-peach-light);
+  color: var(--color-peach-deep);
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(224, 122, 95, 0.3);
+}
+
+.stay-offer-card__guarantee {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #166534;
+  background: #DCFCE7;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.stay-offer-card__title {
+  font-size: 1.25rem;
+  font-family: var(--font-display, serif);
+  color: var(--color-navy);
+  margin: 0;
+}
+
+.stay-offer-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-grow: 1;
+}
+
+.stay-offer-card__highlight-box {
+  background: #FFFDF9;
+  border: 1.5px dashed rgba(224, 122, 95, 0.45);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stay-offer-card__highlight-sub {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.stay-offer-card__highlight-main {
+  font-size: 1rem;
+  color: var(--color-peach-deep);
+  font-weight: 800;
+}
+
+.stay-offer-card__terms-box {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+
+.stay-offer-card__terms-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #166534;
+  margin-bottom: 3px;
+}
+
+.stay-offer-card__terms-text {
+  font-size: 0.85rem;
+  color: #14532D;
+  margin: 0;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.stay-offer-card__validity {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stay-offer-card__reassurance {
+  font-size: 0.76rem;
+  color: #78350F;
+  background: #FFFBEB;
+  border-left: 3px solid #F59E0B;
+  padding: 7px 10px;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.35;
+}
+
+.stay-offer-card__action {
+  padding-top: 10px;
+  border-top: 1px solid #F3EDE4;
+}
+
+.stay-offer-card__book-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-peach);
+  color: var(--color-navy);
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 11px 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stay-offer-card__book-btn:hover {
+  background: var(--color-peach-hover);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   AVAILABLE ROOMS / ROOM OPTIONS SECTION
+   ========================================================================== */
+
+.stay-detail__rooms-section {
+  padding: var(--space-xl) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.stay-rooms__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-lg);
+}
+
+.stay-rooms__header-text {
+  flex: 1 1 320px;
+}
+
+.stay-rooms__kicker {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-peach-deep);
+  margin-bottom: 4px;
+}
+
+.stay-rooms__title {
+  font-size: clamp(1.4rem, 3vw, 1.8rem);
+  font-family: var(--font-display, "Playfair Display", Georgia, serif);
+  color: var(--color-navy);
+  margin: 0 0 6px;
+  line-height: 1.25;
+}
+
+.stay-rooms__subtitle {
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.stay-rooms__stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stay-rooms__stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.stay-rooms__stat-badge--available {
+  background: #ecfdf5;
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #065f46;
+}
+
+.stay-rooms__stat-badge--unavailable {
+  background: #fef2f2;
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #991b1b;
+}
+
+.stay-rooms__list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Empty State for Rooms */
+.stay-rooms__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 44px 24px;
+  background: linear-gradient(135deg, #fdfbf7 0%, #f7f3ec 100%);
+  border: 1.5px dashed rgba(23, 36, 58, 0.15);
+  border-radius: var(--radius-sm);
+  color: var(--color-navy);
+  gap: 12px;
+}
+
+.stay-rooms__empty-icon-wrap {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: rgba(224, 122, 95, 0.12);
+  color: var(--color-peach-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stay-rooms__empty-title {
+  margin: 0;
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--color-navy);
+}
+
+.stay-rooms__empty-text {
+  margin: 0;
+  max-width: 480px;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.stay-rooms__empty-cta {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  background: var(--color-peach);
+  color: var(--color-navy);
+  font-weight: 700;
+  font-size: 0.88rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stay-rooms__empty-cta:hover {
+  background: var(--color-peach-hover);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 600px) {
+  .stay-detail {
+    padding: var(--space-md) var(--space-xs);
+  }
+
+  .stay-rooms__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

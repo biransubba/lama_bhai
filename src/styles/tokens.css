@@ -1,0 +1,68 @@
+:root {
+  /* Colors */
+  --color-navy: #17243A;
+  --color-navy-deep: #0F1826;
+  --color-cream: #F8F3EC;
+  --color-surface: #FFFFFF;
+
+  /* Premium peach accent system */
+  --color-peach: #E8A58C;         /* primary accent — solid fills (buttons, badges, active pills) */
+  --color-peach-hover: #DD8E72;   /* richer peach for hover of solid peach fills */
+  --color-peach-soft: #F3D1C3;    /* soft peach — subtle highlight backgrounds */
+  --color-peach-light: #FAE9E2;   /* very light peach — focus rings, gentle tints */
+  --color-peach-deep: #C1622D;    /* deep peach-terracotta — text/icons on cream or white, contrast-safe */
+
+  /* Deprecated aliases — kept so nothing silently reverts if referenced elsewhere */
+  --color-rust: var(--color-peach);
+  --color-rust-hover: var(--color-peach-hover);
+
+  --color-orchid: #C98FB0;
+  --color-forest: #3F5C4C;
+  --color-border: #E6DDD0;
+  --color-text: #17243A;
+  --color-text-muted: #6B6357;
+
+  /* Typography */
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Manrope', sans-serif;
+
+  /* Fluid responsive typography scale */
+  --font-size-hero: clamp(1.85rem, 3.8vw + 0.8rem, 3.25rem);
+  --font-size-h1: clamp(1.6rem, 2.8vw + 0.6rem, 2.65rem);
+  --font-size-h2: clamp(1.3rem, 2vw + 0.5rem, 2.1rem);
+  --font-size-h3: clamp(1.1rem, 1.4vw + 0.45rem, 1.45rem);
+  --font-size-body: clamp(0.92rem, 0.35vw + 0.82rem, 1.05rem);
+
+  /* Spacing scale */
+  --space-xs: 0.5rem;
+  --space-sm: 1rem;
+  --space-md: 2rem;
+  --space-lg: 4rem;
+  --space-xl: 6rem;
+  --space-2xl: 10rem;
+
+  /* Fluid layout spacing */
+  --space-section: clamp(2.5rem, 4.5vw, 5.5rem);
+  --space-card-p: clamp(1rem, 1.8vw, 1.75rem);
+  --container-max-width: 1440px;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 10px;
+
+  /* Image system */
+  --image-radius: var(--radius-sm);
+  --image-zoom-scale: 1.03;
+  --image-zoom-duration: 0.35s;
+
+  /* Transitions */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

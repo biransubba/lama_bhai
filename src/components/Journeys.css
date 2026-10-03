@@ -1,0 +1,108 @@
+.journeys {
+  padding: var(--space-xl) var(--space-md);
+  background: var(--color-surface);
+}
+
+.journeys__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.journeys__heading {
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  margin-bottom: var(--space-lg);
+}
+
+.journeys__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
+.journey-card {
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+.journey-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 32px -16px rgba(23, 36, 58, 0.18);
+  border-color: var(--color-peach);
+}
+
+.journey-card:hover .journey-card__cta {
+  color: var(--color-peach-deep);
+}
+
+.journey-card .dest-image {
+  height: 110px;
+  margin-bottom: 4px;
+}
+
+.journey-card__name {
+  font-size: 1.15rem;
+}
+
+.journey-card__desc {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.journey-card__destinations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.journey-card__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--color-navy);
+}
+
+.journey-card__permit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--color-peach-deep);
+}
+
+.journey-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--color-navy);
+  margin-top: 4px;
+}
+
+@media (max-width: 1000px) {
+  .journeys__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .journeys__grid {
+    grid-template-columns: 1fr;
+  }
+}

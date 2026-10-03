@@ -1,0 +1,334 @@
+/* AdminPermitSettings.css - Sikkim Permit Document Configuration Styling */
+
+.admin-permit-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.admin-permit-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: var(--space-md);
+}
+
+.admin-permit-stat-card {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-permit-stat-card:hover {
+  border-color: var(--color-peach);
+  transform: translateY(-2px);
+}
+
+.admin-permit-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-permit-stat-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  line-height: 1.1;
+}
+
+.admin-permit-stat-lbl {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* Tabs */
+.admin-permit-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: 2px;
+  margin-bottom: var(--space-md);
+  overflow-x: auto;
+}
+
+.admin-permit-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -4px;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.admin-permit-tab:hover {
+  color: var(--color-navy);
+  background: rgba(255, 159, 122, 0.08);
+}
+
+.admin-permit-tab--active {
+  color: var(--color-navy);
+  border-bottom-color: var(--color-peach-deep);
+  font-weight: 700;
+  background: #ffffff;
+}
+
+.admin-permit-tab-badge {
+  background: var(--color-cream);
+  color: var(--color-navy);
+  font-size: 0.72rem;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-weight: 700;
+  border: 1px solid var(--color-border);
+}
+
+.admin-permit-tab--active .admin-permit-tab-badge {
+  background: var(--color-peach);
+  border-color: var(--color-peach-deep);
+}
+
+/* Modal styling */
+.admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 24, 38, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.admin-modal-panel,
+.admin-modal-content {
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  max-width: 680px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  animation: adminModalIn 0.2s ease;
+}
+
+@keyframes adminModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.admin-modal-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-cream);
+}
+
+.admin-modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  margin: 0;
+}
+
+.admin-modal-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.admin-modal-close:hover {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.admin-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  background: #ffffff;
+}
+
+.admin-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #f8fafc;
+}
+
+.admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-form-label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-form-hint {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  line-height: 1.35;
+}
+
+.admin-form-input,
+.admin-form-textarea,
+.admin-form-select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: var(--color-navy);
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-form-input:focus,
+.admin-form-textarea:focus,
+.admin-form-select:focus {
+  outline: none;
+  border-color: var(--color-peach-deep);
+  box-shadow: 0 0 0 3px rgba(255, 159, 122, 0.25);
+}
+
+.admin-form-textarea {
+  min-height: 70px;
+  resize: vertical;
+}
+
+.admin-radio-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-radio-pill {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  transition: all 0.15s ease;
+}
+
+.admin-radio-pill:hover {
+  border-color: var(--color-peach);
+  background: rgba(255, 159, 122, 0.05);
+}
+
+.admin-radio-pill--active {
+  border-color: var(--color-peach-deep);
+  background: #fff8f5;
+  color: var(--color-navy);
+  box-shadow: 0 0 0 1px var(--color-peach-deep);
+}
+
+.admin-checkbox-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #fbf8f5;
+  cursor: pointer;
+}
+
+.admin-checkbox-card input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-peach-deep);
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+/* Preview Box */
+.admin-permit-preview-box {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  margin-top: var(--space-md);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.admin-permit-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-permit-preview-dest-badge {
+  background: var(--color-cream);
+  border: 1px solid var(--color-border);
+  color: var(--color-navy);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+}

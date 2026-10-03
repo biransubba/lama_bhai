@@ -1,0 +1,788 @@
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 430px);
+  align-items: start;
+  gap: var(--space-xl);
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: var(--space-md) var(--space-md) var(--space-xs);
+}
+
+/* Radar Live Badge */
+.hero__live-radar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 24, 38, 0.05);
+  border: 1px solid rgba(15, 24, 38, 0.12);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-navy);
+  margin-bottom: 10px;
+}
+
+.hero__live-radar-pulse {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+}
+
+.hero__live-radar-pulse::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #22c55e;
+  opacity: 0.75;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  animation: radarPulse 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.hero__live-radar-core {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+@keyframes radarPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  70% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.hero__live-radar-title {
+  color: #166534;
+  font-weight: 800;
+}
+
+.hero__live-radar-divider {
+  color: #94a3b8;
+}
+
+.hero__live-radar-update {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+/* Heading - Single consistent color */
+.hero__heading {
+  font-size: clamp(2rem, 3.2vw, 3rem);
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.025em;
+  color: var(--color-navy);
+  margin-bottom: 8px;
+}
+
+.hero__sub {
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  max-width: 64ch;
+  margin-bottom: 16px;
+  line-height: 1.55;
+}
+
+/* Structured Dispatch Board Container */
+.hero__dispatch-board {
+  background: #ffffff;
+  border: 1px solid rgba(15, 24, 38, 0.1);
+  border-radius: 16px;
+  padding: 14px 18px;
+  box-shadow: 0 16px 36px -10px rgba(15, 24, 38, 0.08), 0 1px 3px rgba(15, 24, 38, 0.04);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hero__dispatch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(15, 24, 38, 0.06);
+}
+
+.hero__dispatch-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero__dispatch-icon {
+  color: var(--color-peach-deep);
+}
+
+.hero__dispatch-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-navy);
+}
+
+.hero__dispatch-live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #166534;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 2px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.hero__dispatch-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+/* 2-Column Grid for spacious individual place cards filling the available space */
+.hero__routes-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.hero__route-card {
+  background: #fbf9f6;
+  border: 1px solid rgba(15, 24, 38, 0.08);
+  border-radius: 10px;
+  padding: 9px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  contain: content;
+}
+
+.hero__route-card:hover {
+  background: #ffffff;
+  border-color: rgba(15, 24, 38, 0.2);
+  box-shadow: 0 4px 14px rgba(15, 24, 38, 0.06);
+}
+
+.hero__route-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hero__route-card-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.hero__route-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  line-height: 1.2;
+}
+
+.hero__route-alt {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.hero__route-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Static smooth glowing dot without repaint storms */
+.hero__route-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 5px currentColor;
+  flex-shrink: 0;
+}
+
+.hero__route-desc {
+  font-size: 0.69rem;
+  color: #475569;
+  line-height: 1.28;
+  margin: 0;
+}
+
+.hero__route-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.64rem;
+  padding-top: 3px;
+  border-top: 1px dashed rgba(15, 24, 38, 0.06);
+}
+
+.hero__route-region {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.hero__route-vehicle {
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+}
+
+/* Dispatch Board Footer */
+.hero__dispatch-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 24, 38, 0.06);
+}
+
+.hero__dispatch-guarantee {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.hero__guarantee-icon {
+  color: var(--color-peach-deep);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   HERO RIGHT COLUMN: Hero Card + Mangan Base Operational Unit
+   ========================================================================== */
+.hero__right-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 430px;
+  margin-left: auto;
+}
+
+/* Mangan Ground Intelligence Unit */
+.hero-ops-unit {
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 16px rgba(15, 24, 38, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hero-ops-unit__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(15, 24, 38, 0.06);
+}
+
+.hero-ops-unit__pulse-wrap {
+  width: 8px;
+  height: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-ops-unit__pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 5px #22c55e;
+}
+
+.hero-ops-unit__title {
+  font-size: 0.69rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-navy);
+}
+
+.hero-ops-unit__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 12px;
+}
+
+.hero-ops-unit__item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.hero-ops-unit__val {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  line-height: 1.2;
+}
+
+.hero-ops-unit__lbl {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* ==========================================================================
+   HERO CARD: Scenic Mountain Window + Non-Clickable Services + Direct Connect
+   ========================================================================== */
+.hero-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 42px -12px rgba(15, 24, 38, 0.16);
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 430px;
+  width: 100%;
+  margin-left: auto;
+  transition: box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+}
+
+.hero-card:hover {
+  box-shadow: 0 24px 48px -12px rgba(15, 24, 38, 0.22);
+  transform: translateY(-2px);
+}
+
+/* Scenic Photo Header with double fallback guarantee */
+.hero-card__media {
+  position: relative;
+  height: 220px;
+  background-color: var(--color-navy);
+  background-image: url("../assets/images/sikkim-mountains.jpg");
+  background-size: cover;
+  background-position: center 35%;
+  background-repeat: no-repeat;
+  overflow: hidden;
+}
+
+.hero-card__image-wrap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-card__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  display: block;
+  transition: transform 0.45s var(--ease);
+}
+
+.hero-card:hover .hero-card__image {
+  transform: scale(1.035);
+}
+
+.hero-card__media-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 24, 38, 0.02) 0%,
+    rgba(15, 24, 38, 0.2) 50%,
+    rgba(15, 24, 38, 0.7) 100%
+  );
+  pointer-events: none;
+}
+
+.hero-card__badge {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(15, 24, 38, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 5px 12px;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Card Body */
+.hero-card__body {
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #ffffff;
+}
+
+/* ==========================================================================
+   Services Available Badges (Explicitly Non-Clickable Showcase)
+   ========================================================================== */
+.hero-card__services-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-card__services-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.hero-card__svc-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: #fbf9f6;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 4px;
+  color: var(--color-navy);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hero-card__svc-badge svg {
+  color: var(--color-peach-deep);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Direct Connect Container
+   ========================================================================== */
+.hero-card__connect-box {
+  background: #fbf9f6;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px 14px 14px;
+}
+
+.hero-card__connect-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(230, 221, 208, 0.6);
+}
+
+.hero-card__connect-title {
+  font-family: var(--font-display);
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: var(--color-navy);
+}
+
+.hero-card__connect-sub {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* 2x2 Direct Channels Grid */
+.hero-card__channels-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.hero-card__channel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  text-decoration: none;
+  transition: all 0.2s var(--ease);
+  min-width: 0;
+}
+
+.hero-card__channel:hover,
+.hero-card__channel:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(15, 24, 38, 0.08);
+}
+
+/* Individual Channel Hover Highlights */
+.hero-card__channel--phone:hover,
+.hero-card__channel--phone:focus-visible {
+  border-color: var(--color-peach-deep);
+  background: #fff8f5;
+}
+
+.hero-card__channel--whatsapp:hover,
+.hero-card__channel--whatsapp:focus-visible {
+  border-color: #25d366;
+  background: #f2fcf5;
+}
+
+.hero-card__channel--instagram:hover,
+.hero-card__channel--instagram:focus-visible {
+  border-color: #e1306c;
+  background: #fdf2f6;
+}
+
+.hero-card__channel--facebook:hover,
+.hero-card__channel--facebook:focus-visible {
+  border-color: #1877f2;
+  background: #f2f6fe;
+}
+
+/* Channel Icons - Crisp Modern Badges */
+.hero-card__channel-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s var(--ease);
+}
+
+.hero-card__channel-icon-wrap svg {
+  shape-rendering: geometricPrecision;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.14));
+}
+
+.hero-card__channel:hover .hero-card__channel-icon-wrap {
+  transform: scale(1.1);
+}
+
+.hero-card__channel-icon-wrap--phone {
+  background: linear-gradient(135deg, #e07a5f 0%, #c45537 100%);
+  color: #ffffff;
+  box-shadow: 0 3px 8px rgba(224, 122, 95, 0.35);
+}
+
+.hero-card__channel-icon-wrap--whatsapp {
+  background: #25d366;
+  color: #ffffff;
+  box-shadow: 0 3px 8px rgba(37, 211, 102, 0.38);
+}
+
+.hero-card__channel-icon-wrap--instagram {
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+  color: #ffffff;
+  box-shadow: 0 3px 8px rgba(214, 36, 159, 0.38);
+}
+
+.hero-card__channel-icon-wrap--facebook {
+  background: #1877f2;
+  color: #ffffff;
+  box-shadow: 0 3px 8px rgba(24, 119, 242, 0.38);
+}
+
+/* Channel Text Meta */
+.hero-card__channel-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.hero-card__channel-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  line-height: 1.25;
+}
+
+.hero-card__channel-val {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Plan My Trip Bottom CTA */
+.hero-card__plan-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--color-peach);
+  color: var(--color-navy);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 12px 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s var(--ease);
+}
+
+.hero-card__plan-btn:hover,
+.hero-card__plan-btn:focus-visible {
+  background: var(--color-peach-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(232, 165, 140, 0.4);
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+    padding-top: var(--space-xl);
+    padding-left: var(--space-sm);
+    padding-right: var(--space-sm);
+    min-height: auto;
+  }
+
+  .hero__dispatch-board {
+    margin-top: var(--space-sm);
+  }
+
+  .hero-card {
+    margin: var(--space-lg) auto 0;
+    max-width: 480px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero__routes-grid {
+    grid-template-columns: 1fr;
+    max-height: 310px;
+  }
+
+  .hero__dispatch-board {
+    padding: 14px 14px;
+    border-radius: 14px;
+  }
+
+  .hero__filter-chips {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 4px;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .hero__filter-chip {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .hero__dispatch-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero__heading {
+    font-size: clamp(2rem, 8vw, 2.6rem);
+  }
+
+  .hero-card__media {
+    height: 190px;
+  }
+
+  .hero-card__body {
+    padding: 14px 12px 16px;
+  }
+
+  .hero-card__services-grid {
+    gap: 4px;
+  }
+
+  .hero-card__svc-badge {
+    padding: 7px 3px;
+    font-size: 0.72rem;
+    gap: 4px;
+  }
+
+  .hero-card__channels-grid {
+    gap: 6px;
+  }
+
+  .hero-card__channel {
+    padding: 7px 8px;
+    gap: 6px;
+  }
+
+  .hero-card__channel-icon-wrap {
+    width: 28px;
+    height: 28px;
+  }
+
+  .hero-card__channel-icon-wrap svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .hero-card__channel-name {
+    font-size: 0.7rem;
+  }
+
+  .hero-card__channel-val {
+    font-size: 0.65rem;
+  }
+}

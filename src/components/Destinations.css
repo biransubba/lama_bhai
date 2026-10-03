@@ -1,0 +1,335 @@
+/* ==========================================================================
+   Destinations - Photographic "Himalayan Adventure" Visual Cards
+   Consistent in design and layout with ExploreWays (Choose Your Way)
+   ========================================================================== */
+
+.destinations {
+  padding: var(--space-2xl) var(--space-md);
+  background: transparent;
+}
+
+.destinations__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* Header */
+.destinations__header {
+  margin-bottom: var(--space-lg);
+  max-width: 680px;
+}
+
+.destinations__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-peach-deep);
+  background: var(--color-peach-light);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  margin-bottom: var(--space-xs);
+}
+
+.destinations__heading {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-weight: 600;
+  color: var(--color-navy);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.destinations__subtitle {
+  font-size: 1.05rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+/* 3-Column Balanced Grid */
+.destinations__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+/* Photographic Destination Card */
+.dest-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 420px;
+  border-radius: 18px;
+  overflow: hidden;
+  text-decoration: none;
+  background: var(--color-navy-deep);
+  border: 1px solid rgba(230, 221, 208, 0.4);
+  box-shadow: 0 10px 30px -12px rgba(23, 36, 58, 0.16);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+              border-color 0.35s ease;
+  isolation: isolate;
+}
+
+.dest-card:hover,
+.dest-card:focus-visible {
+  transform: translateY(-7px);
+  box-shadow: 0 24px 44px -14px rgba(23, 36, 58, 0.32),
+              0 0 0 1px rgba(232, 165, 140, 0.6);
+  border-color: var(--color-peach);
+  outline: none;
+}
+
+/* Background Image & Vignette Gradient */
+.dest-card__bg-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: #0F1826;
+}
+
+.dest-card__bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.dest-card:hover .dest-card__bg-img {
+  transform: scale(1.07);
+}
+
+.dest-card__bg-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #17243A 0%, #0F1826 100%);
+  color: rgba(255, 255, 255, 0.3);
+}
+
+/* Multi-stop dramatic cinematic vignette */
+.dest-card__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 24, 38, 0.45) 0%,
+    rgba(15, 24, 38, 0.15) 30%,
+    rgba(15, 24, 38, 0.65) 65%,
+    rgba(15, 24, 38, 0.95) 100%
+  );
+  transition: background 0.35s ease;
+}
+
+.dest-card:hover .dest-card__overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 24, 38, 0.4) 0%,
+    rgba(15, 24, 38, 0.1) 25%,
+    rgba(15, 24, 38, 0.7) 60%,
+    rgba(15, 24, 38, 0.98) 100%
+  );
+}
+
+/* Top Meta Row */
+.dest-card__top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  gap: 10px;
+}
+
+/* Frosted glass icon badge */
+.dest-card__icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  transition: background 0.3s ease, color 0.3s ease, transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.dest-card:hover .dest-card__icon-badge {
+  background: var(--color-peach);
+  color: #17243A;
+  transform: scale(1.06);
+}
+
+.dest-card__icon-badge--expedition {
+  border-color: rgba(232, 165, 140, 0.5);
+}
+
+.dest-card__top-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Category tag pill */
+.dest-card__tag-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  background: rgba(15, 24, 38, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+}
+
+.dest-card__tag-pill--expedition {
+  background: rgba(193, 98, 45, 0.75);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Photo counter pill */
+.dest-card__photos-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  padding: 4px 10px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+/* Bottom Body Content */
+.dest-card__body {
+  position: relative;
+  z-index: 2;
+  padding: 20px 22px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dest-card__title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.25;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  transition: color 0.2s ease;
+}
+
+.dest-card:hover .dest-card__title {
+  color: var(--color-peach-soft);
+}
+
+.dest-card__desc {
+  font-size: 0.88rem;
+  color: rgba(248, 243, 236, 0.86);
+  line-height: 1.5;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Footer & CTA Button */
+.dest-card__footer {
+  margin-top: 4px;
+}
+
+.dest-card__cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #17243A;
+  background: linear-gradient(135deg, #FFF9F6 0%, #FEECE4 100%);
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: 1px solid rgba(232, 165, 140, 0.6);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dest-card:hover .dest-card__cta-btn {
+  background: linear-gradient(135deg, var(--color-peach) 0%, var(--color-peach-hover) 100%);
+  color: #17243A;
+  border-color: var(--color-peach-hover);
+  box-shadow: 0 6px 18px rgba(232, 165, 140, 0.45);
+  transform: translateX(3px);
+}
+
+.dest-card__cta-arrow {
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dest-card:hover .dest-card__cta-arrow {
+  transform: translate(2px, -2px);
+}
+
+/* Special Expedition Card Accents */
+.dest-card--expedition {
+  border-color: rgba(232, 165, 140, 0.5);
+}
+
+.dest-card--expedition:hover {
+  border-color: var(--color-peach);
+  box-shadow: 0 24px 44px -14px rgba(193, 98, 45, 0.35),
+              0 0 0 1px rgba(232, 165, 140, 0.7);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1024px) {
+  .destinations__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  .dest-card {
+    min-height: 380px;
+  }
+}
+
+@media (max-width: 640px) {
+  .destinations {
+    padding: var(--space-xl) var(--space-sm);
+  }
+  .destinations__grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .dest-card {
+    min-height: 350px;
+  }
+}

@@ -1,0 +1,46 @@
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-lg);
+}
+
+.filter-bar__fields {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  flex-grow: 1;
+}
+
+.filter-bar__field {
+  min-width: 200px;
+  flex: 1;
+  max-width: 280px;
+}
+
+.filter-bar__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-peach-deep);
+  padding: 9px 4px;
+  white-space: nowrap;
+}
+
+.filter-bar__clear:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 600px) {
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-bar__field {
+    min-width: 0;
+    max-width: none;
+  }
+}

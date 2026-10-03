@@ -1,0 +1,344 @@
+/* ==========================================================================
+   Footer - Luxury Himalayan Travel & Hospitality Footer
+   Rich 4-column architecture with live guest desk, circuits, and dynamic legal
+   ========================================================================== */
+
+.footer {
+  background: #0B131F;
+  color: var(--color-cream);
+  padding: 56px var(--space-md) 28px;
+  border-top: 1px solid rgba(230, 221, 208, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.footer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, rgba(232, 165, 140, 0.4) 50%, transparent 100%);
+}
+
+.footer__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.35fr 0.95fr 1fr 1.15fr;
+  gap: 36px;
+  padding-bottom: 40px;
+}
+
+/* Column 1: Brand & Heritage */
+.footer__brand-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer__brand-header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 16px;
+}
+
+/* Brand Box Container: perfectly frames the brand logo edge-to-edge with ZERO empty space/padding */
+.footer__brand-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  background: #ffffff;
+  border: 1px solid rgba(232, 165, 140, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  line-height: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.footer__brand-box:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.footer__brand-box--natural {
+  border-radius: 8px;
+}
+
+.footer__brand-box--rounded {
+  border-radius: 12px;
+}
+
+.footer__brand-box--circle {
+  border-radius: 50%;
+  width: 52px;
+  height: 52px;
+}
+
+.footer__brand-logo {
+  height: 52px;
+  max-height: 54px;
+  width: auto;
+  max-width: 180px;
+  display: block;
+  object-fit: cover;
+  border-radius: inherit;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.footer__brand-box--circle .footer__brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.footer__brand-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.footer__brand-title {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-decoration: none;
+  line-height: 1.2;
+  transition: color 0.2s ease;
+}
+
+.footer__brand-title:hover {
+  color: var(--color-peach-soft);
+}
+
+.footer__brand-tagline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-peach);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Operational Credentials List (Replaces generic marketing paragraph) */
+.footer__credentials {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-width: 38ch;
+}
+
+.footer__cred-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 7px 11px;
+  border-radius: 9px;
+  transition: all 0.2s ease;
+}
+
+.footer__cred-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(232, 165, 140, 0.3);
+}
+
+.footer__cred-icon {
+  color: var(--color-peach);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.footer__cred-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.footer__cred-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(248, 243, 236, 0.52);
+  font-weight: 600;
+}
+
+.footer__cred-val {
+  font-size: 0.8rem;
+  color: rgba(248, 243, 236, 0.88);
+  font-weight: 500;
+}
+
+/* Columns 2 & 3: Headings & Links */
+.footer__col-heading {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-peach-soft);
+  margin-bottom: 18px;
+}
+
+.footer__links {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.footer__link {
+  font-size: 0.86rem;
+  color: rgba(248, 243, 236, 0.78);
+  text-decoration: none;
+  transition: color 0.2s ease, transform 0.2s ease;
+  width: fit-content;
+}
+
+.footer__link:hover {
+  color: var(--color-peach);
+  transform: translateX(3px);
+}
+
+/* Column 4: Local Guest Desk */
+.footer__col--connect {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer__desk-desc {
+  font-size: 0.84rem;
+  color: rgba(248, 243, 236, 0.72);
+  line-height: 1.55;
+  margin-bottom: 16px;
+  max-width: 32ch;
+}
+
+.footer__desk-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.footer__desk-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.22s ease;
+  text-decoration: none;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+  flex-shrink: 0;
+}
+
+.footer__desk-btn:hover {
+  transform: translateY(-3px) scale(1.08);
+}
+
+.footer__desk-btn--phone:hover {
+  filter: drop-shadow(0 6px 14px rgba(226, 123, 88, 0.55));
+}
+
+.footer__desk-btn--wa:hover {
+  filter: drop-shadow(0 6px 14px rgba(37, 211, 102, 0.55));
+}
+
+.footer__desk-btn--ig:hover {
+  filter: drop-shadow(0 6px 14px rgba(214, 36, 159, 0.55));
+}
+
+.footer__desk-btn--fb:hover {
+  filter: drop-shadow(0 6px 14px rgba(24, 119, 242, 0.55));
+}
+
+.footer__email-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: rgba(248, 243, 236, 0.76);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer__email-link:hover {
+  color: var(--color-peach);
+}
+
+/* Bottom Legal & Verification Strip */
+.footer__bottom {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: rgba(248, 243, 236, 0.6);
+}
+
+.footer__bottom-left {
+  font-weight: 500;
+}
+
+.footer__permit-note {
+  font-size: 0.74rem;
+  color: rgba(248, 243, 236, 0.45);
+  max-width: 50ch;
+  display: block;
+  text-align: center;
+}
+
+.footer__bottom-right {
+  font-weight: 600;
+  color: var(--color-peach-soft);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .footer__inner {
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .footer__permit-note {
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .footer {
+    padding: 44px var(--space-sm) 24px;
+  }
+  .footer__inner {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .footer__bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .footer__permit-note {
+    text-align: left;
+  }
+}

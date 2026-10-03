@@ -1,0 +1,57 @@
+.offer-badge-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.offer-badge-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.offer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #FEECE4 0%, #FDDCD0 100%);
+  color: var(--color-peach-deep, #C75D3A);
+  border: 1px solid rgba(224, 122, 95, 0.38);
+  padding: 3px 10px;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(199, 93, 58, 0.12);
+  line-height: 1.25;
+}
+
+.offer-badge__icon {
+  color: var(--color-peach-deep);
+  flex-shrink: 0;
+}
+
+.offer-badge__hook {
+  font-weight: 800;
+  color: #9C3E14;
+}
+
+.offer-badge__title {
+  font-weight: 600;
+  color: var(--color-navy);
+  opacity: 0.85;
+}
+
+.offer-badge__terms-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}

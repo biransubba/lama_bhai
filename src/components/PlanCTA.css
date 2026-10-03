@@ -1,0 +1,312 @@
+/* ==========================================================================
+   PlanCTA - Compact & Sleek Panoramic Himalayan Journey Banner
+   Balances vibrant mountain photography with high-contrast luxury UI
+   ========================================================================== */
+
+.plan-cta {
+  padding: var(--space-lg) var(--space-md) var(--space-xl);
+  background: transparent;
+}
+
+.plan-cta__container {
+  max-width: 1160px;
+  margin: 0 auto;
+  position: relative;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #0F1826;
+  border: 1px solid rgba(230, 221, 208, 0.4);
+  box-shadow: 0 16px 44px -14px rgba(23, 36, 58, 0.22);
+  isolation: isolate;
+  text-align: center;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+              border-color 0.4s ease;
+}
+
+.plan-cta__container:hover {
+  border-color: rgba(232, 165, 140, 0.6);
+  box-shadow: 0 24px 50px -14px rgba(23, 36, 58, 0.3),
+              0 0 0 1px rgba(232, 165, 140, 0.4);
+}
+
+/* Background image - clearly visible, not pitch black */
+.plan-cta__bg-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: #0F1826;
+}
+
+.plan-cta__bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 32%;
+  opacity: 0.82;
+  filter: brightness(0.92) contrast(1.08) saturate(1.15);
+  transform: scale(1.01);
+  transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.plan-cta__container:hover .plan-cta__bg-img {
+  transform: scale(1.04);
+}
+
+/* Cinematic multi-stop gradient vignette:
+   Translucent in upper/mid center to let the sky, mountains, and flags glow,
+   with subtle darkening behind text for crisp legibility. */
+.plan-cta__overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 75% 65% at 50% 48%, rgba(15, 24, 38, 0.42) 0%, rgba(15, 24, 38, 0.2) 55%, rgba(15, 24, 38, 0.72) 100%),
+    linear-gradient(180deg, rgba(15, 24, 38, 0.38) 0%, rgba(15, 24, 38, 0.15) 30%, rgba(15, 24, 38, 0.52) 68%, rgba(15, 24, 38, 0.85) 100%);
+  transition: background 0.4s ease;
+}
+
+.plan-cta__container:hover .plan-cta__overlay {
+  background:
+    radial-gradient(ellipse 75% 65% at 50% 48%, rgba(15, 24, 38, 0.38) 0%, rgba(15, 24, 38, 0.15) 55%, rgba(15, 24, 38, 0.68) 100%),
+    linear-gradient(180deg, rgba(15, 24, 38, 0.32) 0%, rgba(15, 24, 38, 0.1) 30%, rgba(15, 24, 38, 0.48) 68%, rgba(15, 24, 38, 0.82) 100%);
+}
+
+/* Content Area - streamlined, proportional & stylish */
+.plan-cta__content {
+  position: relative;
+  z-index: 2;
+  padding: 42px 32px 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Eyebrow badge */
+.plan-cta__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: rgba(15, 24, 38, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Main Heading */
+.plan-cta__heading {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 2.6vw, 2.35rem);
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.22;
+  max-width: 25ch;
+  margin: 2px 0 0;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.6);
+}
+
+/* Subtitle */
+.plan-cta__sub {
+  font-size: 0.96rem;
+  color: rgba(248, 243, 236, 0.92);
+  max-width: 530px;
+  line-height: 1.55;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  margin-bottom: 4px;
+}
+
+/* Action Buttons Container */
+.plan-cta__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 4px 0 6px;
+}
+
+/* Primary Planning Button */
+.plan-cta__btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #FFF9F6 0%, #FEECE4 100%);
+  color: #17243A;
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 11px 22px;
+  border-radius: 9999px;
+  border: 1px solid rgba(232, 165, 140, 0.6);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  text-decoration: none;
+}
+
+.plan-cta__btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-peach) 0%, var(--color-peach-hover) 100%);
+  color: #17243A;
+  border-color: var(--color-peach-hover);
+  box-shadow: 0 6px 20px rgba(232, 165, 140, 0.5);
+  transform: translateY(-2px);
+}
+
+.plan-cta__arrow {
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.plan-cta__btn-primary:hover .plan-cta__arrow {
+  transform: translateX(3px);
+}
+
+/* Secondary WhatsApp Button */
+.plan-cta__btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 24, 38, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.88rem;
+  padding: 10px 18px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  transition: all 0.25s ease;
+  text-decoration: none;
+}
+
+.plan-cta__btn-secondary:hover {
+  background: rgba(37, 211, 102, 0.2);
+  border-color: rgba(37, 211, 102, 0.6);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.3);
+}
+
+.plan-cta__wa-icon {
+  color: #25D366;
+}
+
+/* Quick Service Exploration Chips */
+.plan-cta__chips-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.plan-cta__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(248, 243, 236, 0.9);
+  background: rgba(15, 24, 38, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 5px 12px;
+  border-radius: 9999px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.plan-cta__chip:hover {
+  color: #ffffff;
+  background: rgba(232, 165, 140, 0.25);
+  border-color: var(--color-peach);
+  transform: translateY(-2px);
+}
+
+/* Bottom Trust Strip */
+.plan-cta__trust-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  width: 100%;
+  max-width: 620px;
+}
+
+.plan-cta__trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(248, 243, 236, 0.88);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.plan-cta__trust-icon {
+  color: var(--color-peach);
+  flex-shrink: 0;
+}
+
+.plan-cta__trust-dot {
+  color: rgba(248, 243, 236, 0.4);
+  font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .plan-cta {
+    padding: var(--space-md) var(--space-sm) var(--space-lg);
+  }
+  .plan-cta__container {
+    border-radius: 18px;
+  }
+  .plan-cta__content {
+    padding: 34px 18px 24px;
+    gap: 10px;
+  }
+  .plan-cta__heading {
+    font-size: 1.6rem;
+  }
+  .plan-cta__sub {
+    font-size: 0.9rem;
+  }
+  .plan-cta__actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+  .plan-cta__btn-primary,
+  .plan-cta__btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+  .plan-cta__chips-row {
+    gap: 6px;
+  }
+  .plan-cta__chip {
+    font-size: 0.74rem;
+    padding: 4px 10px;
+  }
+  .plan-cta__trust-dot {
+    display: none;
+  }
+  .plan-cta__trust-strip {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
