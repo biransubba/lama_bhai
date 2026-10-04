@@ -85,6 +85,9 @@ exports.updatePropertyStatus = async (req, res, next) => {
     }
 
     property.status = status;
+    if (reviewerNotes !== undefined) {
+      property.reviewerNotes = reviewerNotes;
+    }
     if (featured !== undefined) {
       property.featured = Boolean(featured);
     }

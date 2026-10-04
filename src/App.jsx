@@ -96,6 +96,8 @@ export default function App() {
           <Route path="bike" element={<Navigate to="/admin/bikes" replace />} />
           <Route path="stays" element={<AdminStays />} />
           <Route path="stay" element={<Navigate to="/admin/stays" replace />} />
+          <Route path="properties" element={<Navigate to="/admin/stays" replace />} />
+          <Route path="property" element={<Navigate to="/admin/stays" replace />} />
           <Route path="partners" element={<AdminPartners />} />
           <Route path="partner" element={<Navigate to="/admin/partners" replace />} />
           <Route path="destinations" element={<AdminDestinations />} />

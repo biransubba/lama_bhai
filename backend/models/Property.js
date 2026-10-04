@@ -116,6 +116,11 @@ const propertySchema = new mongoose.Schema(
       default: 'pending',
       index: true,
     },
+    reviewerNotes: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     active: {
       type: Boolean,
       default: true,

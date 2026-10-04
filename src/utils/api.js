@@ -184,15 +184,40 @@ export const api = {
 
   // 4. Admin Management APIs
   admin: {
-    getProperties: (status) => {
-      const qs = status ? `?status=${status}` : '';
+    getProperties: (params = {}) => {
+      let qs = '';
+      if (typeof params === 'string') {
+        qs = params ? `?status=${encodeURIComponent(params)}` : '';
+      } else if (typeof params === 'object' && params !== null) {
+        const query = new URLSearchParams();
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== '') {
+            query.append(k, v);
+          }
+        });
+        const qStr = query.toString();
+        qs = qStr ? `?${qStr}` : '';
+      }
       return apiRequest(`/admin/properties${qs}`, { method: 'GET' });
     },
-    updatePropertyStatus: (id, status, notes) =>
-      apiRequest(`/admin/properties/${id}/status`, {
+    updatePropertyStatus: (id, statusOrData, maybeNotes) => {
+      let body;
+      if (typeof statusOrData === 'object' && statusOrData !== null) {
+        body = statusOrData;
+      } else {
+        body = { status: statusOrData };
+        if (typeof maybeNotes === 'string') {
+          body.reviewerNotes = maybeNotes;
+          body.notes = maybeNotes;
+        } else if (typeof maybeNotes === 'object' && maybeNotes !== null) {
+          Object.assign(body, maybeNotes);
+        }
+      }
+      return apiRequest(`/admin/properties/${id}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status, notes }),
-      }),
+        body: JSON.stringify(body),
+      });
+    },
     getPartners: () =>
       apiRequest('/admin/partners', {
         method: 'GET',
