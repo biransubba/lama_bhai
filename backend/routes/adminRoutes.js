@@ -3,11 +3,11 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const bookingController = require('../controllers/bookingController');
 const reviewController = require('../controllers/reviewController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { adminAccess } = require('../middleware/authMiddleware');
 
-// All admin routes strictly require authenticated admin
-router.use(protect);
-router.use(authorize('admin'));
+// All admin routes require authenticated admin (protect + authorize('admin')),
+// unless the temporary dev flag ADMIN_AUTH_BYPASS=true is set (never in production).
+router.use(adminAccess);
 
 // Property Moderation
 router.get('/properties', adminController.getAllProperties);

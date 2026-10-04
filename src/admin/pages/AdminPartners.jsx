@@ -679,196 +679,258 @@ export default function AdminPartners() {
       {showAddModal && (
         <div className="admin-modal" role="dialog" aria-modal="true" aria-labelledby="add-partner-title">
           <div className="admin-modal__backdrop" onClick={() => !isSubmitting && setShowAddModal(false)} />
-          <div className="admin-modal__panel" style={{ maxWidth: 560 }}>
-            <button
-              className="admin-modal__close"
-              onClick={() => !isSubmitting && setShowAddModal(false)}
-              aria-label="Close"
-              disabled={isSubmitting}
+          <div
+            className="admin-modal__panel"
+            style={{
+              maxWidth: 580,
+              width: "100%",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            {/* MODAL HEADER (Sticky Top) */}
+            <div
+              style={{
+                padding: "16px 20px",
+                borderBottom: "1px solid var(--color-border)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                flexShrink: 0,
+                background: "#ffffff",
+              }}
             >
-              <X size={20} weight="bold" />
-            </button>
-            <h2 id="add-partner-title" className="admin-modal__title" style={{ marginBottom: "4px" }}>
-              Add Partner Account
-            </h2>
-            <p className="admin-page-note" style={{ marginTop: 0, marginBottom: "var(--space-md)" }}>
-              Create a new verified partner account. The host can immediately log in to the Host Portal using these credentials.
-            </p>
+              <div>
+                <h2 id="add-partner-title" className="admin-modal__title" style={{ margin: "0 0 4px", fontSize: "1.25rem" }}>
+                  Add Partner Account
+                </h2>
+                <p className="admin-page-note" style={{ margin: 0, fontSize: "0.82rem" }}>
+                  Create a new verified partner account. The host can immediately log in to the Host Portal using these credentials.
+                </p>
+              </div>
+              <button
+                className="admin-modal__close"
+                onClick={() => !isSubmitting && setShowAddModal(false)}
+                aria-label="Close"
+                disabled={isSubmitting}
+                style={{ marginLeft: "12px", marginTop: "-2px" }}
+              >
+                <X size={20} weight="bold" />
+              </button>
+            </div>
 
-            {formError && (
+            {/* FORM WRAPPER */}
+            <form
+              onSubmit={handleAddPartnerSubmit}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                flex: "1 1 auto",
+                overflow: "hidden",
+                margin: 0,
+              }}
+            >
+              {/* SCROLLABLE BODY */}
               <div
                 style={{
-                  background: "#fee2e2",
-                  border: "1px solid #fecaca",
-                  borderRadius: "var(--radius-sm)",
-                  padding: "10px 14px",
-                  marginBottom: "var(--space-md)",
+                  flex: "1 1 auto",
+                  overflowY: "auto",
+                  padding: "16px 20px",
                   display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  color: "#991b1b",
-                  fontSize: "0.85rem",
+                  flexDirection: "column",
+                  gap: "14px",
                 }}
               >
-                <WarningCircle size={18} weight="fill" style={{ flexShrink: 0 }} />
-                <span>{formError}</span>
-              </div>
-            )}
+                {formError && (
+                  <div
+                    style={{
+                      background: "#fee2e2",
+                      border: "1px solid #fecaca",
+                      borderRadius: "var(--radius-sm)",
+                      padding: "10px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      color: "#991b1b",
+                      fontSize: "0.85rem",
+                    }}
+                  >
+                    <WarningCircle size={18} weight="fill" style={{ flexShrink: 0 }} />
+                    <span>{formError}</span>
+                  </div>
+                )}
 
-            <form onSubmit={handleAddPartnerSubmit} className="admin-form">
-              {/* SECTION 1: PARTNER INFORMATION */}
-              <div style={{ marginBottom: "var(--space-sm)" }}>
-                <h3
-                  style={{
-                    fontSize: "0.85rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    color: "var(--color-navy)",
-                    margin: "0 0 10px",
-                    fontWeight: 700,
-                    paddingBottom: "4px",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  Partner Information
-                </h3>
+                {/* SECTION 1: PARTNER INFORMATION */}
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "0.82rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: "var(--color-navy)",
+                      margin: "0 0 10px",
+                      fontWeight: 700,
+                      paddingBottom: "4px",
+                      borderBottom: "1px solid var(--color-border)",
+                    }}
+                  >
+                    Partner Information
+                  </h3>
 
-                <div className="admin-field">
-                  <label className="admin-field__label">
-                    <span className="admin-field__title">Full Name *</span>
-                    <input
-                      type="text"
-                      name="name"
-                      placeholder="e.g., Tenzing Norbu"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px", marginBottom: "10px" }}>
+                    <div className="admin-field">
+                      <label className="admin-field__label">
+                        <span className="admin-field__title">Full Name *</span>
+                        <input
+                          type="text"
+                          name="name"
+                          placeholder="e.g., Tenzing Norbu"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          disabled={isSubmitting}
+                          required
+                        />
+                      </label>
+                    </div>
+
+                    <div className="admin-field">
+                      <label className="admin-field__label">
+                        <span className="admin-field__title">Phone Number *</span>
+                        <input
+                          type="tel"
+                          name="phone"
+                          placeholder="e.g., 9876543210"
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          disabled={isSubmitting}
+                          required
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
+                    <div className="admin-field">
+                      <label className="admin-field__label">
+                        <span className="admin-field__title">Homestay / Agency Name</span>
+                        <input
+                          type="text"
+                          name="agencyName"
+                          placeholder="e.g., Lachen Mountain View Homestay"
+                          value={formData.agencyName}
+                          onChange={handleInputChange}
+                          disabled={isSubmitting}
+                        />
+                      </label>
+                    </div>
+
+                    <div className="admin-field">
+                      <label className="admin-field__label">
+                        <span className="admin-field__title">Base Location *</span>
+                        <Dropdown
+                          options={SIKKIM_LOCATIONS}
+                          value={formData.location}
+                          onChange={(val) => setFormData((prev) => ({ ...prev, location: val }))}
+                          disabled={isSubmitting}
+                          light
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="admin-field">
-                  <label className="admin-field__label">
-                    <span className="admin-field__title">Phone Number *</span>
-                    <input
-                      type="tel"
-                      name="phone"
-                      placeholder="e.g., 9876543210"
-                      value={formData.phone}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </label>
-                </div>
+                {/* SECTION 2: LOGIN CREDENTIALS */}
+                <div>
+                  <h3
+                    style={{
+                      fontSize: "0.82rem",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                      color: "var(--color-navy)",
+                      margin: "0 0 10px",
+                      fontWeight: 700,
+                      paddingBottom: "4px",
+                      borderBottom: "1px solid var(--color-border)",
+                    }}
+                  >
+                    Login Credentials
+                  </h3>
 
-                <div className="admin-field">
-                  <label className="admin-field__label">
-                    <span className="admin-field__title">Homestay / Agency Name</span>
-                    <input
-                      type="text"
-                      name="agencyName"
-                      placeholder="e.g., Lachen Mountain View Homestay"
-                      value={formData.agencyName}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting}
-                    />
-                  </label>
-                </div>
-
-                <div className="admin-field">
-                  <label className="admin-field__label">
-                    <span className="admin-field__title">Base Location *</span>
-                    <Dropdown
-                      options={SIKKIM_LOCATIONS}
-                      value={formData.location}
-                      onChange={(val) => setFormData((prev) => ({ ...prev, location: val }))}
-                      disabled={isSubmitting}
-                      light
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* SECTION 2: LOGIN CREDENTIALS */}
-              <div style={{ marginBottom: "var(--space-md)" }}>
-                <h3
-                  style={{
-                    fontSize: "0.85rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    color: "var(--color-navy)",
-                    margin: "0 0 10px",
-                    fontWeight: 700,
-                    paddingBottom: "4px",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  Login Credentials
-                </h3>
-
-                <div className="admin-field">
-                  <label className="admin-field__label">
-                    <span className="admin-field__title">Email (Used for Partner Login) *</span>
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="e.g., partner@example.com"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </label>
-                  <p className="admin-field__help" style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
-                    This email is unique and will be used by the host to log in at /partner/login.
-                  </p>
-                </div>
-
-                <div className="admin-field">
-                  <label className="admin-field__label">
-                    <span className="admin-field__title">Temporary Password *</span>
-                    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <div className="admin-field" style={{ marginBottom: "10px" }}>
+                    <label className="admin-field__label">
+                      <span className="admin-field__title">Email (Used for Partner Login) *</span>
                       <input
-                        type={showPassword ? "text" : "password"}
-                        name="temporaryPassword"
-                        placeholder="At least 6 characters"
-                        value={formData.temporaryPassword}
+                        type="email"
+                        name="email"
+                        placeholder="e.g., partner@example.com"
+                        value={formData.email}
                         onChange={handleInputChange}
                         disabled={isSubmitting}
-                        style={{ paddingRight: "40px" }}
                         required
-                        minLength={6}
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        style={{
-                          position: "absolute",
-                          right: "10px",
-                          background: "none",
-                          border: "none",
-                          color: "#64748b",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "4px",
-                        }}
-                        title={showPassword ? "Hide password" : "Show password"}
-                      >
-                        {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </label>
-                  <p className="admin-field__help" style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
-                    Password is automatically hashed securely before saving to the database.
-                  </p>
+                    </label>
+                    <p className="admin-field__help" style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
+                      This email is unique and will be used by the host to log in at /partner/login.
+                    </p>
+                  </div>
+
+                  <div className="admin-field">
+                    <label className="admin-field__label">
+                      <span className="admin-field__title">Temporary Password *</span>
+                      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="temporaryPassword"
+                          placeholder="At least 6 characters"
+                          value={formData.temporaryPassword}
+                          onChange={handleInputChange}
+                          disabled={isSubmitting}
+                          style={{ paddingRight: "40px" }}
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{
+                            position: "absolute",
+                            right: "10px",
+                            background: "none",
+                            border: "none",
+                            color: "#64748b",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            padding: "4px",
+                          }}
+                          title={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                    </label>
+                    <p className="admin-field__help" style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
+                      Password is automatically hashed securely before saving to the database.
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              {/* ACTION BUTTONS */}
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "var(--space-md)" }}>
+              {/* ACTION BUTTONS (Sticky Footer - Always Visible on Screen) */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "12px 20px",
+                  borderTop: "1px solid var(--color-border)",
+                  background: "#f8fafc",
+                  flexShrink: 0,
+                }}
+              >
                 <button
                   type="button"
                   className="admin-btn-secondary"
@@ -902,50 +964,109 @@ export default function AdminPartners() {
       {editingPartner && (
         <div className="admin-modal" role="dialog" aria-modal="true" aria-labelledby="edit-partner-title">
           <div className="admin-modal__backdrop" onClick={() => !isUpdatingStatus && setEditingPartner(null)} />
-          <div className="admin-modal__panel" style={{ maxWidth: 520 }}>
-            <button
-              className="admin-modal__close"
-              onClick={() => !isUpdatingStatus && setEditingPartner(null)}
-              aria-label="Close"
-              disabled={isUpdatingStatus}
+          <div
+            className="admin-modal__panel"
+            style={{
+              maxWidth: 520,
+              width: "100%",
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
+            {/* HEADER */}
+            <div
+              style={{
+                padding: "16px 20px",
+                borderBottom: "1px solid var(--color-border)",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                flexShrink: 0,
+                background: "#ffffff",
+              }}
             >
-              <X size={20} weight="bold" />
-            </button>
-            <h2 id="edit-partner-title" className="admin-modal__title">
-              Edit Partner: {editingPartner.name}
-            </h2>
-            <p className="admin-page-note" style={{ margin: "2px 0 16px" }}>
-              {editingPartner.email} · Role: <code>{editingPartner.role}</code>
-            </p>
+              <div>
+                <h2 id="edit-partner-title" className="admin-modal__title" style={{ margin: "0 0 4px", fontSize: "1.25rem" }}>
+                  Edit Partner: {editingPartner.name}
+                </h2>
+                <p className="admin-page-note" style={{ margin: 0, fontSize: "0.82rem" }}>
+                  {editingPartner.email} · Role: <code>{editingPartner.role}</code>
+                </p>
+              </div>
+              <button
+                className="admin-modal__close"
+                onClick={() => !isUpdatingStatus && setEditingPartner(null)}
+                aria-label="Close"
+                disabled={isUpdatingStatus}
+                style={{ marginLeft: "12px", marginTop: "-2px" }}
+              >
+                <X size={20} weight="bold" />
+              </button>
+            </div>
 
-            <form onSubmit={handleSaveEditStatus} className="admin-form">
-              <div className="admin-field">
-                <label className="admin-field__label">
-                  <span className="admin-field__title">Verification Status</span>
-                  <Dropdown
-                    options={["Approved", "Pending", "Suspended", "Inactive", "Rejected"]}
-                    value={editStatus}
-                    onChange={(val) => setEditStatus(val)}
-                    disabled={isUpdatingStatus}
-                    light
-                  />
-                </label>
+            {/* FORM WRAPPER */}
+            <form
+              onSubmit={handleSaveEditStatus}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                flex: "1 1 auto",
+                overflow: "hidden",
+                margin: 0,
+              }}
+            >
+              <div
+                style={{
+                  flex: "1 1 auto",
+                  overflowY: "auto",
+                  padding: "16px 20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "14px",
+                }}
+              >
+                <div className="admin-field">
+                  <label className="admin-field__label">
+                    <span className="admin-field__title">Verification Status</span>
+                    <Dropdown
+                      options={["Approved", "Pending", "Suspended", "Inactive", "Rejected"]}
+                      value={editStatus}
+                      onChange={(val) => setEditStatus(val)}
+                      disabled={isUpdatingStatus}
+                      light
+                    />
+                  </label>
+                </div>
+
+                <div className="admin-field">
+                  <label className="admin-field__label">
+                    <span className="admin-field__title">Administrative / Review Notes</span>
+                    <textarea
+                      rows={3}
+                      placeholder="Internal notes regarding this partner..."
+                      value={editNotes}
+                      onChange={(e) => setEditNotes(e.target.value)}
+                      disabled={isUpdatingStatus}
+                    />
+                  </label>
+                </div>
               </div>
 
-              <div className="admin-field">
-                <label className="admin-field__label">
-                  <span className="admin-field__title">Administrative / Review Notes</span>
-                  <textarea
-                    rows={3}
-                    placeholder="Internal notes regarding this partner..."
-                    value={editNotes}
-                    onChange={(e) => setEditNotes(e.target.value)}
-                    disabled={isUpdatingStatus}
-                  />
-                </label>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "var(--space-md)" }}>
+              {/* FOOTER */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "12px 20px",
+                  borderTop: "1px solid var(--color-border)",
+                  background: "#f8fafc",
+                  flexShrink: 0,
+                }}
+              >
                 <button
                   type="button"
                   className="admin-btn-secondary"

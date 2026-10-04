@@ -93,9 +93,39 @@ const optionalAuth = (req, res, next) => {
   next();
 };
 
+/**
+ * Admin route guard.
+ *
+ * TEMPORARY DEV MODE: when ADMIN_AUTH_BYPASS=true (and NODE_ENV is NOT production),
+ * the /api/admin/* routes are open without an admin login, so the /admin panel
+ * can be used without logging in. Partner (/partner) authentication is NOT affected.
+ *
+ * Otherwise this is exactly protect + authorize('admin').
+ */
+const isAdminBypassEnabled = () =>
+  process.env.ADMIN_AUTH_BYPASS === 'true' && process.env.NODE_ENV !== 'production';
+
+let bypassWarned = false;
+const adminAccess = (req, res, next) => {
+  if (isAdminBypassEnabled()) {
+    if (!bypassWarned) {
+      console.warn('[SECURITY WARNING] ADMIN_AUTH_BYPASS is enabled: /api/admin/* is open without login. Disable before deploying.');
+      bypassWarned = true;
+    }
+    return next();
+  }
+
+  return protect(req, res, (err) => {
+    if (err) return next(err);
+    return authorize('admin')(req, res, next);
+  });
+};
+
 module.exports = {
   protect,
   authorize,
   ensureApprovedOwner,
   optionalAuth,
+  adminAccess,
+  isAdminBypassEnabled,
 };
