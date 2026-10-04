@@ -19,14 +19,17 @@ import {
   Printer,
   Sparkle,
 } from "phosphor-react";
-import {
-  lookupBookingRequest,
-  cancelBookingRequest,
-  CANCELLATION_REASONS,
-  getInventoryForBooking,
-} from "../utils/bookingStorage.js";
 import { api } from "../utils/api.js";
 import "./ManageBooking.css";
+
+export const CANCELLATION_REASONS = [
+  "Change of travel dates",
+  "Weather / road blockade concerns",
+  "Health / personal emergency",
+  "Found alternative accommodation",
+  "Cancelled trip to Sikkim entirely",
+  "Other reason",
+];
 
 export default function ManageBooking() {
   const [searchParams] = useSearchParams();
@@ -54,81 +57,90 @@ export default function ManageBooking() {
     const qPhone = searchParams.get("phone");
     const qEmail = searchParams.get("email");
 
-    if (qId && qPhone && qEmail) {
-      handleLookup(qId, qPhone, qEmail);
+    if (qId) {
+      handleLookup(qId, qPhone || "", qEmail || "");
     }
   }, [searchParams]);
 
-  function handleLookup(idVal = bookingId, phoneVal = phone, emailVal = email) {
+  async function handleLookup(idVal = bookingId, phoneVal = phone, emailVal = email) {
     setErrorMessage(null);
     setCancelSuccessNotice(false);
 
-    if (!idVal.trim() || !phoneVal.trim() || !emailVal.trim()) {
-      setErrorMessage("Please fill in all three fields: Booking ID, Phone Number, and Email Address.");
+    if (!idVal.trim()) {
+      setErrorMessage("Please enter your Booking Reference ID.");
       return;
     }
 
     setSearching(true);
     try {
-      const res = lookupBookingRequest({
-        id: idVal,
-        phone: phoneVal,
-        email: emailVal,
-      });
+      const res = await api.bookings.getById(idVal.trim());
 
-      if (res.success && res.booking) {
-        setCurrentBooking(res.booking);
-        setSearching(false);
+      if (res && res.success && res.data) {
+        const b = res.data;
+
+        // Security check: if phone and email were entered in the form, verify match
+        if (phoneVal.trim() && emailVal.trim()) {
+          const cleanPhoneDigits = phoneVal.replace(/\D/g, "");
+          const bPhoneDigits = (b.customerDetails?.phone || "").replace(/\D/g, "");
+          const matchPhone =
+            cleanPhoneDigits.length >= 10 && bPhoneDigits.length >= 10
+              ? cleanPhoneDigits.slice(-10) === bPhoneDigits.slice(-10)
+              : cleanPhoneDigits === bPhoneDigits;
+
+          const matchEmail =
+            (emailVal || "").trim().toLowerCase() === (b.customerDetails?.email || "").trim().toLowerCase();
+
+          if (!matchPhone && !matchEmail) {
+            setCurrentBooking(null);
+            setErrorMessage("The phone number and email address do not match this booking record.");
+            setSearching(false);
+            return;
+          }
+        }
+
+        const checkInStr = b.schedule?.checkIn ? new Date(b.schedule.checkIn).toLocaleDateString("en-IN") : "";
+        const checkOutStr = b.schedule?.checkOut ? new Date(b.schedule.checkOut).toLocaleDateString("en-IN") : "";
+
+        const mappedBooking = {
+          id: b.bookingRequestId || b._id,
+          _id: b._id,
+          bookingRequestId: b.bookingRequestId,
+          service: b.service || "Stay",
+          status: b.status || "New",
+          name: b.customerDetails?.name || "Guest",
+          phone: b.customerDetails?.phone || "",
+          email: b.customerDetails?.email || "",
+          propertyName: b.propertyName || b.property?.name || "",
+          roomName: b.roomName || b.room?.name || "",
+          date: checkInStr ? `${checkInStr}${checkOutStr ? ` to ${checkOutStr}` : ""}` : "",
+          travellers: b.travellers || 1,
+          nights: b.schedule?.nights || 1,
+          price: b.pricing?.totalPrice ? `₹${b.pricing.totalPrice.toLocaleString("en-IN")}` : "—",
+          notes: b.notes || "",
+          submittedAt: b.createdAt,
+          cancelledAt: b.cancellation?.cancelledAt,
+          cancellationReason: b.cancellation?.reason,
+          cancellationNotes: b.cancellation?.notes,
+          details: [
+            ...(b.propertyName ? [{ label: "Property", value: b.propertyName }] : []),
+            ...(b.roomName ? [{ label: "Room", value: b.roomName }] : []),
+            ...(checkInStr ? [{ label: "Check-in", value: checkInStr }] : []),
+            ...(checkOutStr ? [{ label: "Check-out", value: checkOutStr }] : []),
+            ...(b.pricing?.totalPrice ? [{ label: "Total Tariff", value: `₹${b.pricing.totalPrice.toLocaleString("en-IN")}` }] : []),
+          ],
+        };
+
+        setCurrentBooking(mappedBooking);
+        setErrorMessage(null);
       } else {
-        // Fallback check against live Express/MongoDB backend
-        api.bookings
-          .getById(idVal.trim())
-          .then((backendRes) => {
-            if (backendRes && backendRes.success && backendRes.data) {
-              const b = backendRes.data;
-              const cleanPhoneDigits = phoneVal.replace(/\D/g, "");
-              const bPhoneDigits = (b.customerPhone || "").replace(/\D/g, "");
-              const matchPhone =
-                cleanPhoneDigits.length >= 10 && bPhoneDigits.length >= 10
-                  ? cleanPhoneDigits.slice(-10) === bPhoneDigits.slice(-10)
-                  : cleanPhoneDigits === bPhoneDigits;
-              const matchEmail = (emailVal || "").trim().toLowerCase() === (b.customerEmail || "").trim().toLowerCase();
-
-              if (matchPhone || matchEmail) {
-                setCurrentBooking({
-                  id: b.bookingRequestId || b._id,
-                  bookingRequestId: b.bookingRequestId,
-                  service: b.service || "Stay",
-                  status: b.status || "New",
-                  fullName: b.customerName,
-                  email: b.customerEmail,
-                  phone: b.customerPhone,
-                  guestCount: b.guestCount,
-                  checkInDate: b.dates?.checkIn,
-                  checkOutDate: b.dates?.checkOut,
-                  price: b.pricing?.totalPrice ? `₹${b.pricing.totalPrice}` : "—",
-                  notes: b.specialRequests,
-                  createdAt: b.createdAt,
-                  submittedAt: b.createdAt,
-                });
-                setErrorMessage(null);
-                setSearching(false);
-                return;
-              }
-            }
-            setCurrentBooking(null);
-            setErrorMessage(res.error || "No booking matched the details provided.");
-            setSearching(false);
-          })
-          .catch(() => {
-            setCurrentBooking(null);
-            setErrorMessage(res.error || "No booking matched the details provided.");
-            setSearching(false);
-          });
+        setCurrentBooking(null);
+        setErrorMessage("No booking found with this reference ID. Please check the ID and try again.");
       }
     } catch (err) {
-      console.error("Lookup error:", err);
-      setErrorMessage("An unexpected error occurred while looking up your booking.");
+      console.error("[ManageBooking] Lookup error:", err);
+      setCurrentBooking(null);
+      setErrorMessage("No booking matched the details provided. Please verify your reference ID.");
+    } finally {
       setSearching(false);
     }
   }
@@ -144,27 +156,34 @@ export default function ManageBooking() {
     setShowCancelModal(true);
   }
 
-  function handleConfirmCancellation() {
+  async function handleConfirmCancellation() {
     if (!currentBooking) return;
 
     setCancelling(true);
     try {
-      const updated = cancelBookingRequest(currentBooking.id, {
+      const idToCancel = currentBooking.bookingRequestId || currentBooking._id || currentBooking.id;
+      const res = await api.bookings.cancel(idToCancel, {
         reason: cancelReason,
         notes: cancelNotes,
-        cancelledBy: "customer",
       });
 
-      if (updated) {
-        setCurrentBooking(updated);
+      if (res && res.success && res.data) {
+        const b = res.data;
+        setCurrentBooking((prev) => ({
+          ...prev,
+          status: b.status || "Cancelled",
+          cancelledAt: b.cancellation?.cancelledAt || new Date().toISOString(),
+          cancellationReason: b.cancellation?.reason || cancelReason,
+          cancellationNotes: b.cancellation?.notes || cancelNotes,
+        }));
         setShowCancelModal(false);
         setCancelSuccessNotice(true);
       } else {
-        alert("Failed to cancel booking. Please try again or contact Lama Bhai directly.");
+        alert(res?.error || "Failed to cancel booking. Please try again or contact Lama Bhai support.");
       }
     } catch (err) {
-      console.error("Error during cancellation:", err);
-      alert("Error cancelling booking.");
+      console.error("[ManageBooking] Error during cancellation:", err);
+      alert(err.message || "Error cancelling booking.");
     } finally {
       setCancelling(false);
     }
@@ -194,7 +213,7 @@ export default function ManageBooking() {
           </span>
           <h1>Manage &amp; Track Your Booking</h1>
           <p>
-            Verify your reservation status, review trip specifications, or instantly cancel your booking if your travel plans have changed.
+            Verify your reservation status, review trip specifications, or cancel your booking if your travel plans have changed.
           </p>
         </div>
 
@@ -204,7 +223,7 @@ export default function ManageBooking() {
             <MagnifyingGlass size={20} weight="bold" /> Booking Verification Lookup
           </h2>
           <p className="manage-booking__card-sub">
-            For security, please enter the exact <strong>Booking Reference ID</strong>, <strong>Phone Number</strong>, and <strong>Email Address</strong> used during booking.
+            Please enter your <strong>Booking Reference ID</strong>, and optionally your phone or email for verified lookup.
           </p>
 
           <form onSubmit={handleSearchSubmit} className="manage-booking__form">
@@ -213,34 +232,32 @@ export default function ManageBooking() {
                 <span>Booking Reference ID *</span>
                 <input
                   type="text"
-                  placeholder="e.g. req_179050... or BK-..."
+                  placeholder="e.g. LB-ST-... or MongoDB ID"
                   value={bookingId}
                   onChange={(e) => setBookingId(e.target.value)}
                   required
                 />
-                <small>Provided on your booking confirmation screen</small>
+                <small>Reference code provided on booking confirmation</small>
               </label>
 
               <label className="manage-booking__field">
-                <span>Phone Number *</span>
+                <span>Phone / WhatsApp Number</span>
                 <input
                   type="tel"
                   placeholder="e.g. 9876543210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  required
                 />
-                <small>Phone number registered with booking</small>
+                <small>Contact phone number registered with booking</small>
               </label>
 
               <label className="manage-booking__field">
-                <span>Email Address *</span>
+                <span>Email Address</span>
                 <input
                   type="email"
                   placeholder="e.g. yourname@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
                 />
                 <small>Email address registered with booking</small>
               </label>
@@ -278,11 +295,8 @@ export default function ManageBooking() {
             <div>
               <h3>Booking Successfully Cancelled</h3>
               <p>
-                Your reservation (<strong>{currentBooking.id}</strong>) has been released immediately. The local host and operations team have been notified.
+                Your reservation (<strong>{currentBooking?.id}</strong>) has been cancelled in the system. The host and operations team have been notified.
               </p>
-              <small>
-                Note: In the live backend rollout, an automated SMS and email receipt will be sent to <strong>{currentBooking.email}</strong> and <strong>{currentBooking.phone}</strong>.
-              </small>
             </div>
           </div>
         )}
@@ -305,7 +319,7 @@ export default function ManageBooking() {
                   className={`manage-booking__status-badge manage-booking__status-badge--${currentBooking.status.toLowerCase().replace(/\s+/g, "-")}`}
                 >
                   {isCancelled ? <XCircle size={16} weight="fill" /> : <CheckCircle size={16} weight="fill" />}
-                  {isCancelled ? "Cancelled by Guest" : currentBooking.status}
+                  {isCancelled ? "Cancelled" : currentBooking.status}
                 </span>
               </div>
             </div>
@@ -348,11 +362,11 @@ export default function ManageBooking() {
                     <>
                       <div className="manage-booking__dl-row">
                         <dt>Property:</dt>
-                        <dd><strong>{currentBooking.propertyName || currentBooking.details?.find((d) => d.label === "Property")?.value || "Homestay"}</strong></dd>
+                        <dd><strong>{currentBooking.propertyName || "Homestay"}</strong></dd>
                       </div>
                       <div className="manage-booking__dl-row">
                         <dt>Room:</dt>
-                        <dd><strong style={{ color: "var(--color-peach-deep)" }}>{currentBooking.roomName || currentBooking.details?.find((d) => d.label === "Room")?.value || "Entire Property / General Stay"}</strong></dd>
+                        <dd><strong style={{ color: "var(--color-peach-deep)" }}>{currentBooking.roomName || "Entire Property / General Stay"}</strong></dd>
                       </div>
                     </>
                   )}
@@ -374,6 +388,12 @@ export default function ManageBooking() {
                       <dd>{currentBooking.nights} night(s)</dd>
                     </div>
                   )}
+                  {currentBooking.price && (
+                    <div className="manage-booking__dl-row">
+                      <dt>Total Tariff:</dt>
+                      <dd><strong>{currentBooking.price}</strong></dd>
+                    </div>
+                  )}
                   {currentBooking.submittedAt && (
                     <div className="manage-booking__dl-row">
                       <dt>Requested On:</dt>
@@ -383,7 +403,7 @@ export default function ManageBooking() {
                 </dl>
               </div>
 
-              {/* Service Specifications & Meal Preferences */}
+              {/* Service Specifications & Options */}
               <div className="manage-booking__info-section">
                 <h3>Options &amp; Preferences</h3>
                 {currentBooking.details && currentBooking.details.length > 0 ? (
@@ -391,11 +411,11 @@ export default function ManageBooking() {
                     {currentBooking.details
                       .filter((d) => !d.label?.toLowerCase().includes("id"))
                       .map((d, idx) => (
-                      <div className="manage-booking__dl-row" key={idx}>
-                        <dt>{d.label}:</dt>
-                        <dd>{d.value}</dd>
-                      </div>
-                    ))}
+                        <div className="manage-booking__dl-row" key={idx}>
+                          <dt>{d.label}:</dt>
+                          <dd>{d.value}</dd>
+                        </div>
+                      ))}
                   </dl>
                 ) : (
                   <p className="manage-booking__muted">Standard package reservation</p>
@@ -490,7 +510,7 @@ export default function ManageBooking() {
               <h2 id="cancel-modal-title">Confirm Booking Cancellation</h2>
               <p>
                 Are you sure you want to cancel booking <strong>{currentBooking?.id}</strong>?
-                This action is immediate. Your reserved dates will be made available to other travelers, and your local host/operator will be informed.
+                This action is immediate and records your cancellation in the reservation system.
               </p>
             </div>
 

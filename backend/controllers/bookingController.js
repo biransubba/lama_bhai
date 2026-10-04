@@ -53,8 +53,14 @@ exports.createBooking = async (req, res, next) => {
       const checkOutDate = schedule.checkOut ? new Date(schedule.checkOut) : null;
       let nights = schedule.nights ? Number(schedule.nights) : 1;
 
-      if (checkInDate && checkOutDate && !schedule.nights) {
-        const diffTime = Math.abs(checkOutDate - checkInDate);
+      if (checkInDate && checkOutDate) {
+        if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+          return res.status(400).json({ success: false, error: 'Invalid check-in or check-out date' });
+        }
+        if (checkOutDate <= checkInDate) {
+          return res.status(400).json({ success: false, error: 'Check-out date must be after check-in date' });
+        }
+        const diffTime = checkOutDate - checkInDate;
         nights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
       }
 
@@ -68,14 +74,22 @@ exports.createBooking = async (req, res, next) => {
     }
 
     // 3. Service specific handling (e.g. Stays)
-    if (service === 'Stay' && propertyId) {
-      if (!mongoose.Types.ObjectId.isValid(propertyId)) {
-        return res.status(400).json({ success: false, error: 'Invalid property ID' });
+    if (service === 'Stay') {
+      if (!propertyId || !mongoose.Types.ObjectId.isValid(propertyId)) {
+        return res.status(400).json({ success: false, error: 'Valid property ID is required for stay bookings' });
       }
 
       const property = await Property.findById(propertyId);
       if (!property) {
         return res.status(404).json({ success: false, error: 'Stay property not found' });
+      }
+
+      // Step 16: Property must be approved and active
+      if (property.status !== 'approved' || !property.active) {
+        return res.status(400).json({
+          success: false,
+          error: 'This property is not currently available for booking',
+        });
       }
 
       bookingPayload.property = property._id;
@@ -92,6 +106,14 @@ exports.createBooking = async (req, res, next) => {
         const room = await Room.findOne({ _id: roomId, property: property._id });
         if (!room) {
           return res.status(404).json({ success: false, error: 'Room not found for this property' });
+        }
+
+        // Step 18: Inactive or unavailable room cannot be booked
+        if (room.active === false || room.availability === 'unavailable' || room.availability === 'maintenance') {
+          return res.status(400).json({
+            success: false,
+            error: 'Selected room is currently unavailable for booking',
+          });
         }
 
         bookingPayload.room = room._id;

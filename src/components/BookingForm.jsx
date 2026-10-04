@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   X,
@@ -17,15 +17,11 @@ import {
   Bed,
 } from "phosphor-react";
 import Dropdown from "./Dropdown.jsx";
-import { saveBookingRequest } from "../utils/bookingStorage.js";
-import { getRoomsByPropertyId, getRoomById, getStayById } from "../data/staysStore.js";
 import PermitBookingModal from "./PermitBookingModal.jsx";
+import { api } from "../utils/api.js";
 import "./BookingForm.css";
 
 // Meal plan options: Simple, clean options
-// Only two organic options (Organic Lunch & Organic Dinner),
-// standard Vegetarian Lunch and Non-Vegetarian Lunch,
-// Breakfast Included, and Room Only. (No EP/CP)
 export const MEAL_PLAN_OPTIONS = [
   "Vegetarian Lunch",
   "Non-Vegetarian Lunch",
@@ -88,15 +84,6 @@ export const RIDER_CHOICES = [
   { value: "2", label: "Rider + Pillion" },
 ];
 
-// Supported service-specific booking forms:
-// context shape:
-// {
-//   service: "Car" | "Bike" | "Stay" | "Permit",
-//   inventoryId: string,
-//   title: string,
-//   details: { label: string, value: string }[],
-//   partnerId?: string,
-// }
 export default function BookingForm({ context, onClose }) {
   const service = context?.service || "Stay";
 
@@ -131,7 +118,6 @@ export default function BookingForm({ context, onClose }) {
   const stayPropId = context?.propertyId || (service === "Stay" && context?.inventoryId && !context.inventoryId.startsWith("room_") ? context.inventoryId : null);
   const [availableRooms, setAvailableRooms] = useState(() => {
     if (context?.availableRooms && context.availableRooms.length > 0) return context.availableRooms;
-    if (stayPropId) return getRoomsByPropertyId(stayPropId);
     return [];
   });
   const [selectedRoomId, setSelectedRoomId] = useState(() => context?.roomId || "");
@@ -142,13 +128,34 @@ export default function BookingForm({ context, onClose }) {
   const [mealPlan, setMealPlan] = useState("Vegetarian Lunch");
   const [arrivalTime, setArrivalTime] = useState("Afternoon (12:00 PM - 4:00 PM)");
 
+  // Submission & loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [submittedRequest, setSubmittedRequest] = useState(null);
+
+  // Auto-fetch rooms from backend if not provided in context
+  useEffect(() => {
+    if (service === "Stay" && stayPropId && (!availableRooms || availableRooms.length === 0)) {
+      api.properties
+        .getRooms(stayPropId)
+        .then((res) => {
+          if (res && res.success && Array.isArray(res.data)) {
+            setAvailableRooms(res.data.filter((r) => r.active !== false));
+          }
+        })
+        .catch((err) => {
+          console.warn("[BookingForm] Could not fetch property rooms:", err);
+        });
+    }
+  }, [service, stayPropId]);
+
   // Active stay & room details
-  const stayProperty = stayPropId ? getStayById(stayPropId) : null;
   const activeRoom = selectedRoomId
-    ? (availableRooms.find((r) => r.id === selectedRoomId) || getRoomById(selectedRoomId))
+    ? availableRooms.find((r) => r.id === selectedRoomId || r._id === selectedRoomId)
     : null;
-  const activePropertyName = context?.propertyName || (stayPropId ? getStayById(stayPropId)?.name : null) || context?.title || "Mountain Stay";
-  const propertySubtext = stayProperty?.location ? `${stayProperty.location}, Sikkim` : (stayProperty?.type || "Verified Homestay");
+  const activePropertyName = context?.propertyName || context?.title || "Mountain Stay";
+  const propertySubtext = context?.location ? `${context.location}, Sikkim` : "Verified Homestay";
   const roomSubtext = activeRoom
     ? `${activeRoom.type || "Standard Room"}${activeRoom.capacity ? ` · Up to ${activeRoom.capacity} guests` : ""}`
     : "Entire Property / General Stay";
@@ -156,94 +163,103 @@ export default function BookingForm({ context, onClose }) {
   // Generic fallback fields
   const [travellers, setTravellers] = useState(2);
 
-  // Submission state
-  const [submitted, setSubmitted] = useState(false);
-  const [submittedRequest, setSubmittedRequest] = useState(null);
-
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    if (isSubmitting) return;
 
-    let serviceDetails = [];
-    let travellersCount = null;
-    let nightsCount = null;
-    const primaryDate = date;
+    setSubmitError(null);
 
-    if (service === "Car") {
-      travellersCount = Number(passengers) || 2;
-      serviceDetails = [
-        { label: "Vehicle", value: context.title || "Mountain Vehicle" },
-        ...(context.details || []).filter((d) => d.label !== "Vehicle"),
-        { label: "Pickup Location", value: pickupLocation },
-        { label: "Destination Route", value: destinationRoute },
-        { label: "Trip Duration", value: tripDuration },
-        { label: "Passengers", value: `${passengers} passenger(s)` },
-        ...(extraLuggage ? [{ label: "Luggage Carrier", value: "Requested" }] : []),
-      ];
-    } else if (service === "Bike") {
-      travellersCount = Number(riders) || 1;
-      serviceDetails = [
-        { label: "Bike Model", value: context.title || "Adventure Bike" },
-        ...(context.details || []).filter((d) => d.label !== "Bike"),
-        { label: "Rental Duration", value: `${rentalDays} day(s)` },
-        { label: "Riding Route", value: bikeRoute },
-        { label: "Riders", value: `${riders} rider(s)` },
-        { label: "Helmets", value: helmetOption },
-        ...(saddleBags ? [{ label: "Saddle Bags / Luggage Carrier", value: "Requested" }] : []),
-        ...(permitHelp ? [{ label: "Permit Assistance", value: "Requested" }] : []),
-        { label: "Valid License", value: licenseConfirmed ? "Confirmed by Rider" : "Not yet confirmed" },
-      ];
-    } else if (service === "Stay") {
-      travellersCount = (Number(adults) || 1) + (Number(children) || 0);
-      nightsCount = Number(nights) || 1;
-      const finalPropId = stayPropId || (context.inventoryId && !context.inventoryId.startsWith("room_") ? context.inventoryId : activeRoom?.propertyId) || null;
-      const finalPropName = activePropertyName;
-      const finalRoomId = activeRoom?.id || null;
-      const finalRoomName = activeRoom?.name || null;
-
-      serviceDetails = [
-        { label: "Property", value: finalPropName },
-        { label: "Room", value: finalRoomName ? `${finalRoomName} (${activeRoom.type || 'Room'})` : "Entire Property / General Stay" },
-        ...(context.details || []).filter(
-          (d) => d.label !== "Property" && d.label !== "Room" && d.label !== "Selected Room" && !d.label?.toLowerCase().includes("id")
-        ),
-        { label: "Check-in Date", value: date },
-        { label: "Nights", value: `${nights} night(s)` },
-        { label: "Guests", value: `${adults} adult(s)${children > 0 ? `, ${children} child(ren)` : ""}` },
-        { label: "Rooms Required", value: `${rooms} room(s)` },
-        { label: "Meal Plan", value: mealPlan },
-      ];
-    } else {
-      travellersCount = Number(travellers) || null;
-      nightsCount = Number(nights) || null;
-      serviceDetails = context.details || [];
+    // Frontend validations
+    if (!name.trim()) {
+      setSubmitError("Please enter your full name.");
+      return;
+    }
+    if (!email.trim()) {
+      setSubmitError("Please enter your email address.");
+      return;
+    }
+    if (!phone.trim()) {
+      setSubmitError("Please enter your phone/WhatsApp number.");
+      return;
+    }
+    if (!date) {
+      setSubmitError("Please select a date for your booking.");
+      return;
     }
 
-    const finalPropId = service === "Stay"
-      ? (stayPropId || (context.inventoryId && !context.inventoryId.startsWith("room_") ? context.inventoryId : activeRoom?.propertyId) || null)
-      : (context.propertyId || null);
-    const finalRoomId = service === "Stay" ? (activeRoom?.id || null) : (context.roomId || null);
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (date < todayStr) {
+      setSubmitError("Check-in date cannot be in the past.");
+      return;
+    }
 
-    const saved = saveBookingRequest({
-      service,
-      inventoryId: finalRoomId || finalPropId || context.inventoryId || context.unitId || null,
-      propertyId: finalPropId,
-      roomId: finalRoomId,
-      propertyName: service === "Stay" ? activePropertyName : null,
-      roomName: service === "Stay" ? (activeRoom?.name || null) : null,
-      partnerId: context.partnerId || null,
-      details: serviceDetails,
-      name,
-      phone,
-      email,
-      date: primaryDate,
-      travellers: travellersCount,
-      nights: nightsCount,
-      notes,
-      message: notes,
-    });
+    setIsSubmitting(true);
 
-    setSubmittedRequest(saved);
-    setSubmitted(true);
+    try {
+      const finalPropId =
+        service === "Stay"
+          ? stayPropId || (context?.inventoryId && !context.inventoryId.startsWith("room_") ? context.inventoryId : activeRoom?.propertyId) || null
+          : context?.propertyId || null;
+
+      const finalRoomId = service === "Stay" ? (activeRoom?._id || activeRoom?.id || selectedRoomId || null) : (context?.roomId || null);
+
+      if (service === "Stay" && !finalPropId) {
+        throw new Error("A valid property ID is required for stay bookings.");
+      }
+
+      const travellersCount =
+        service === "Car"
+          ? Number(passengers) || 2
+          : service === "Bike"
+          ? Number(riders) || 1
+          : service === "Stay"
+          ? (Number(adults) || 1) + (Number(children) || 0)
+          : Number(travellers) || 1;
+
+      const nightsCount = service === "Bike" ? Number(rentalDays) || 1 : Number(nights) || 1;
+
+      // Calculate check-out date
+      let checkOutStr = null;
+      if (date && nightsCount) {
+        const cIn = new Date(date);
+        const cOut = new Date(cIn);
+        cOut.setDate(cOut.getDate() + nightsCount);
+        checkOutStr = cOut.toISOString().split("T")[0];
+      }
+
+      const bookingPayload = {
+        service,
+        propertyId: finalPropId || undefined,
+        roomId: finalRoomId || undefined,
+        customerDetails: {
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          nationality: "Indian",
+        },
+        schedule: {
+          checkIn: date,
+          checkOut: checkOutStr,
+          nights: nightsCount,
+        },
+        travellers: travellersCount,
+        notes: notes ? notes.trim() : "",
+      };
+
+      const res = await api.bookings.create(bookingPayload);
+
+      if (res && res.success && res.data) {
+        setSubmittedRequest(res.data);
+        setSubmitted(true);
+      } else {
+        throw new Error(res?.error || "Failed to create booking. Please try again.");
+      }
+    } catch (err) {
+      console.error("[BookingForm] Booking submission failed:", err);
+      setSubmitError(err.message || "Unable to submit booking right now. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   // Service configuration icons and labels
@@ -295,7 +311,7 @@ export default function BookingForm({ context, onClose }) {
 
             <h2>Booking Request Received</h2>
             <div className="booking-success__id-badge">
-              Request ID: {submittedRequest?.id || "Submitted"}
+              Request ID: {submittedRequest?.bookingRequestId || submittedRequest?._id || "Submitted"}
             </div>
 
             {/* Request Summary Recap */}
@@ -313,7 +329,7 @@ export default function BookingForm({ context, onClose }) {
                   <div className="booking-success__recap-row">
                     <span className="booking-success__recap-label">Room</span>
                     <span className="booking-success__recap-val" style={{ color: "var(--color-peach-deep)", fontWeight: 700 }}>
-                      {submittedRequest?.roomName || (submittedRequest?.roomId ? submittedRequest.roomId : "Entire Property / General Stay")}
+                      {submittedRequest?.roomName || (activeRoom?.name ? activeRoom.name : "Entire Property / General Stay")}
                     </span>
                   </div>
                 </>
@@ -324,11 +340,25 @@ export default function BookingForm({ context, onClose }) {
                 </div>
               )}
               <div className="booking-success__recap-row">
-                <span className="booking-success__recap-label">Travel Date</span>
+                <span className="booking-success__recap-label">Check-in / Travel Date</span>
                 <span className="booking-success__recap-val">
-                  {date || "Scheduled"}
-                  {service === "Stay" && nights ? ` (${nights} nights)` : ""}
+                  {submittedRequest?.schedule?.checkIn ? new Date(submittedRequest.schedule.checkIn).toLocaleDateString("en-IN") : date}
+                  {service === "Stay" && (submittedRequest?.schedule?.nights || nights) ? ` (${submittedRequest?.schedule?.nights || nights} nights)` : ""}
                   {service === "Bike" && rentalDays ? ` (${rentalDays} days)` : ""}
+                </span>
+              </div>
+              {submittedRequest?.pricing?.totalPrice && (
+                <div className="booking-success__recap-row">
+                  <span className="booking-success__recap-label">Total Tariff</span>
+                  <span className="booking-success__recap-val" style={{ color: "var(--color-navy)", fontWeight: 700 }}>
+                    ₹{submittedRequest.pricing.totalPrice.toLocaleString("en-IN")}
+                  </span>
+                </div>
+              )}
+              <div className="booking-success__recap-row">
+                <span className="booking-success__recap-label">Initial Status</span>
+                <span className="booking-success__recap-val" style={{ color: "#16a34a", fontWeight: 700 }}>
+                  {submittedRequest?.status || "New"}
                 </span>
               </div>
               <div className="booking-success__recap-row">
@@ -337,10 +367,10 @@ export default function BookingForm({ context, onClose }) {
               </div>
             </div>
 
-            {/* Clear Non-Confirmed / No-Payment Notice (Requirement 7) */}
+            {/* Clear Non-Confirmed / No-Payment Notice */}
             <div className="booking-success__notice-card">
-              <strong>Inquiry Status: New (Pending Operator Review)</strong>
-              Please note: This is an inquiry request. Your reservation is <strong>not yet confirmed</strong>, and <strong>no payment has been made</strong>. The Lama Bhai local operations team will review live availability and contact you via phone or WhatsApp within a few hours to confirm route feasibility, documents, and final pricing.
+              <strong>Inquiry Status: New (Pending Operator / Host Review)</strong>
+              Please note: This reservation request has been submitted to the host. The local operations team or host will review live room availability and contact you via phone or WhatsApp to coordinate your stay.
             </div>
 
             {/* Manage Booking Callout */}
@@ -359,10 +389,10 @@ export default function BookingForm({ context, onClose }) {
                 Want to track, manage or cancel this booking?
               </div>
               <p style={{ margin: "4px 0 12px", fontSize: "0.82rem", color: "var(--color-text-muted)", lineHeight: 1.4 }}>
-                You can review details, check confirmation status, or cancel this booking anytime using your Booking ID (<strong>{submittedRequest?.id}</strong>), phone number, and email.
+                You can review details, check confirmation status, or cancel this booking anytime using your Booking ID (<strong>{submittedRequest?.bookingRequestId || submittedRequest?._id}</strong>).
               </p>
               <Link
-                to={`/manage-booking?id=${encodeURIComponent(submittedRequest?.id || "")}&phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}`}
+                to={`/manage-booking?id=${encodeURIComponent(submittedRequest?.bookingRequestId || submittedRequest?._id || "")}&phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}`}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -400,7 +430,7 @@ export default function BookingForm({ context, onClose }) {
               <p className="booking-form__subheading">{serviceConfig.subheading}</p>
             </div>
 
-            {/* Preselected Item Card (Requirement 1, 2, 3, 5) */}
+            {/* Preselected Item Card */}
             <div className="booking-preselect">
               <span className="booking-preselect__eyebrow">
                 {serviceConfig.icon}
@@ -440,7 +470,7 @@ export default function BookingForm({ context, onClose }) {
                       >
                         <option value="">Entire Property / Any Available Room</option>
                         {availableRooms.map((rm) => (
-                          <option key={rm.id} value={rm.id}>
+                          <option key={rm.id || rm._id} value={rm.id || rm._id}>
                             {rm.name} ({rm.type || "Room"}{rm.price ? ` · ${rm.price}` : ""})
                           </option>
                         ))}
@@ -449,52 +479,41 @@ export default function BookingForm({ context, onClose }) {
                   )}
                 </div>
               ) : (
-                <h3 className="booking-preselect__title">{context.title}</h3>
-              )}
-
-              <div className="booking-preselect__details">
-                {(context.details || [])
-                  .filter((d) => d.label !== "Vehicle" && d.label !== "Bike" && (service !== "Stay" || (d.label !== "Property" && d.label !== "Room" && d.label !== "Selected Room" && d.label !== "Property ID" && d.label !== "Room ID")))
-                  .map((d) => (
-                    <span key={d.label} className="booking-preselect__chip">
-                      <strong>{d.label}:</strong> {d.value}
-                    </span>
-                  ))}
-              </div>
-
-              {context?.appliedOffer && (
-                <div
-                  className="booking-preselect__offer-banner"
-                  style={{
-                    marginTop: "12px",
-                    padding: "10px 14px",
-                    background: "linear-gradient(135deg, rgba(224, 122, 95, 0.12) 0%, rgba(224, 122, 95, 0.05) 100%)",
-                    border: "1.5px solid rgba(224, 122, 95, 0.35)",
-                    borderRadius: "8px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "4px",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                    <Tag size={16} color="var(--color-peach-deep)" weight="fill" />
-                    <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "var(--color-peach-deep)" }}>
-                      {context.appliedOffer.badgeText || context.appliedOffer.discountValue || context.appliedOffer.title}
-                    </span>
-                    <span style={{ fontSize: "0.78rem", background: "var(--color-peach-soft)", color: "var(--color-navy)", padding: "2px 8px", borderRadius: "12px", fontWeight: 600 }}>
-                      {context.appliedOffer.title}
-                    </span>
-                  </div>
-                  {context.appliedOffer.description && (
-                    <div style={{ fontSize: "0.8rem", color: "var(--color-navy)", opacity: 0.88, paddingLeft: "24px" }}>
-                      ✓ {context.appliedOffer.description}
+                <div className="booking-preselect__card">
+                  <strong className="booking-preselect__title">{context.title}</strong>
+                  {context.details && context.details.length > 0 && (
+                    <div className="booking-preselect__details">
+                      {context.details.map((d, idx) => (
+                        <div key={idx} className="booking-preselect__pill">
+                          <span className="booking-preselect__label">{d.label}:</span>
+                          <span className="booking-preselect__value">{d.value}</span>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Customer Contact Details */}
+            {/* Error Message */}
+            {submitError && (
+              <div
+                style={{
+                  color: "#dc2626",
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  padding: "10px 14px",
+                  borderRadius: "6px",
+                  marginBottom: "16px",
+                  fontSize: "0.88rem",
+                  lineHeight: 1.4,
+                }}
+              >
+                {submitError}
+              </div>
+            )}
+
+            {/* Primary Guest Contact Fields */}
             <div className="booking-form__grid">
               <label className="booking-field">
                 <span>Your Full Name *</span>
@@ -520,18 +539,17 @@ export default function BookingForm({ context, onClose }) {
             </div>
 
             <label className="booking-field booking-field--full">
-              <span>Email Address (Optional)</span>
+              <span>Email Address *</span>
               <input
                 type="email"
+                required
                 placeholder="e.g. travel@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </label>
 
-            {/* ============================================================ */}
-            {/* CAR SPECIFIC FLOW (Requirement 1 & 4)                         */}
-            {/* ============================================================ */}
+            {/* CAR SPECIFIC FLOW */}
             {service === "Car" && (
               <>
                 <div className="booking-form__grid">
@@ -540,6 +558,7 @@ export default function BookingForm({ context, onClose }) {
                     <input
                       type="date"
                       required
+                      min={new Date().toISOString().split("T")[0]}
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
                     />
@@ -608,9 +627,7 @@ export default function BookingForm({ context, onClose }) {
               </>
             )}
 
-            {/* ============================================================ */}
-            {/* BIKE SPECIFIC FLOW (Requirement 2 & 4)                        */}
-            {/* ============================================================ */}
+            {/* BIKE SPECIFIC FLOW */}
             {service === "Bike" && (
               <>
                 <div className="booking-form__grid">
@@ -619,6 +636,7 @@ export default function BookingForm({ context, onClose }) {
                     <input
                       type="date"
                       required
+                      min={new Date().toISOString().split("T")[0]}
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
                     />
@@ -706,9 +724,7 @@ export default function BookingForm({ context, onClose }) {
               </>
             )}
 
-            {/* ============================================================ */}
-            {/* STAY / HOMESTAY SPECIFIC FLOW (Requirement 3 & 4)             */}
-            {/* ============================================================ */}
+            {/* STAY / HOMESTAY SPECIFIC FLOW */}
             {service === "Stay" && (
               <>
                 <div className="booking-form__grid">
@@ -717,6 +733,7 @@ export default function BookingForm({ context, onClose }) {
                     <input
                       type="date"
                       required
+                      min={new Date().toISOString().split("T")[0]}
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
                     />
@@ -797,9 +814,7 @@ export default function BookingForm({ context, onClose }) {
               </>
             )}
 
-            {/* ============================================================ */}
-            {/* PERMIT / GENERIC FALLBACK FLOW                                */}
-            {/* ============================================================ */}
+            {/* GENERIC FALLBACK FLOW */}
             {service !== "Car" && service !== "Bike" && service !== "Stay" && (
               <div className="booking-form__grid">
                 <label className="booking-field">
@@ -807,6 +822,7 @@ export default function BookingForm({ context, onClose }) {
                   <input
                     type="date"
                     required
+                    min={new Date().toISOString().split("T")[0]}
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                   />
@@ -835,16 +851,30 @@ export default function BookingForm({ context, onClose }) {
               />
             </label>
 
-            {/* Inquiry Notice (Requirement 7) */}
+            {/* Inquiry Notice */}
             <div className="booking-info-notice">
               <Info size={18} />
               <span>
-                <strong>Direct Enquiry:</strong> No upfront payment is taken. Submitting this request allows our local team to check driver/host schedules and confirm your itinerary.
+                <strong>Direct Enquiry:</strong> No upfront payment is taken. Submitting this request sends your reservation directly to the local host/operator to coordinate your itinerary.
               </span>
             </div>
 
-            <button type="submit" className="booking-form__submit">
-              Submit {service} Booking Request <ArrowRight size={16} weight="bold" />
+            <button
+              type="submit"
+              className="booking-form__submit"
+              disabled={isSubmitting}
+              style={{
+                opacity: isSubmitting ? 0.7 : 1,
+                cursor: isSubmitting ? "not-allowed" : "pointer",
+              }}
+            >
+              {isSubmitting ? (
+                "Submitting Booking Request..."
+              ) : (
+                <>
+                  Submit {service} Booking Request <ArrowRight size={16} weight="bold" />
+                </>
+              )}
             </button>
           </form>
         )}

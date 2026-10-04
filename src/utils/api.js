@@ -263,11 +263,16 @@ export const api = {
       apiRequest('/bookings/my', {
         method: 'GET',
       }),
-    cancel: (id, reason) =>
-      apiRequest(`/bookings/${id}/cancel`, {
+    cancel: (id, reasonOrData) => {
+      const body =
+        typeof reasonOrData === 'object' && reasonOrData !== null
+          ? reasonOrData
+          : { reason: reasonOrData };
+      return apiRequest(`/bookings/${id}/cancel`, {
         method: 'PATCH',
-        body: JSON.stringify({ reason }),
-      }),
+        body: JSON.stringify(body),
+      });
+    },
   },
 
   // 6. Property Review APIs
