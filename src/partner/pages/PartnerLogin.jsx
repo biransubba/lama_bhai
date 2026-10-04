@@ -1,99 +1,64 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { HouseLine, UsersThree, CheckCircle, ArrowRight, ShieldCheck, ArrowSquareOut } from "phosphor-react";
+import {
+  HouseLine,
+  ShieldCheck,
+  ArrowRight,
+  ArrowSquareOut,
+  EnvelopeSimple,
+  LockKey,
+  WarningCircle,
+  Sparkle,
+} from "phosphor-react";
 import { usePartnerAuth } from "../context/PartnerAuthContext.jsx";
-import { staysStore } from "../../data/staysStore.js";
 
 export default function PartnerLogin() {
-  const { approvedPartners, allPartners = [], loginAsPartner } = usePartnerAuth();
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [statusNotice, setStatusNotice] = useState(null);
+  const { user, authenticated, loading, login } = usePartnerAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
 
-  const allStays = staysStore.getAll();
-  const pendingOrSuspendedPartners = allPartners.filter(
-    (p) => p.status !== "Approved" && p.status !== "approved"
-  );
-
-  function handleSelectHost(id) {
-    const partner = allPartners.find((p) => p.id === id);
-    if (!partner) return;
-
-    if (partner.status !== "Approved" && partner.status !== "approved") {
-      setStatusNotice({
-        partner,
-        status: partner.status || "Pending",
-      });
-      loginAsPartner(id);
-      navigate("/partner");
-      return;
+  // If already authenticated with partner/admin role, redirect directly to dashboard
+  useEffect(() => {
+    if (!loading && authenticated && user) {
+      navigate("/partner", { replace: true });
     }
+  }, [loading, authenticated, user, navigate]);
 
-    loginAsPartner(id);
-    navigate("/partner");
-  }
-
-  function handlePhoneSubmit(e) {
+  async function handleLoginSubmit(e) {
     e.preventDefault();
     setErrorMsg("");
-    setStatusNotice(null);
 
-    const cleaned = phoneNumber.replace(/[^0-9]/g, "");
-    if (!cleaned) {
-      setErrorMsg("Please enter a valid phone number");
+    if (!email.trim() || !password.trim()) {
+      setErrorMsg("Please enter both email and password.");
       return;
     }
 
-    // 1. Check approved partners first
-    const foundApproved = approvedPartners.find((p) => {
-      const pClean = (p.phone || "").replace(/[^0-9]/g, "");
-      return pClean.includes(cleaned) || cleaned.includes(pClean);
-    });
-
-    if (foundApproved) {
-      handleSelectHost(foundApproved.id);
-      return;
+    try {
+      setSubmitting(true);
+      await login(email.trim(), password);
+      // Upon successful session creation, navigate to partner dashboard
+      navigate("/partner");
+    } catch (err) {
+      setErrorMsg(err.message || "Invalid credentials or unauthorized account.");
+    } finally {
+      setSubmitting(false);
     }
+  }
 
-    // 2. Check all partners to give precise status explanation
-    const foundOther = allPartners.find((p) => {
-      const pClean = (p.phone || "").replace(/[^0-9]/g, "");
-      return pClean.includes(cleaned) || cleaned.includes(pClean);
-    });
-
-    if (foundOther) {
-      const status = foundOther.status || "Pending";
-      if (status === "Pending") {
-        setErrorMsg(
-          `Application Found (${foundOther.name} • ${foundOther.agency}): Your partnership request is currently PENDING review by Main Admin. Access to the portal will be granted once approved.`
-        );
-      } else if (status === "Suspended") {
-        setErrorMsg(
-          `Account Suspended (${foundOther.name} • ${foundOther.agency}): This partner account is temporarily suspended by Main Admin. Please contact Lama Bhai Tourism.`
-        );
-      } else if (status === "Rejected") {
-        setErrorMsg(
-          `Application Not Approved (${foundOther.name}): This partnership application was reviewed and not accepted.`
-        );
-      } else if (status === "Inactive") {
-        setErrorMsg(
-          `Account Inactive (${foundOther.name}): This partner account has been deactivated.`
-        );
-      } else {
-        setErrorMsg(`Partner account status: ${status}. Access is limited to approved partners.`);
-      }
-      return;
-    }
-
-    setErrorMsg(
-      "No partner account found with that phone number. Please choose your host profile below or contact Main Admin."
-    );
+  // Quick helper to fill test accounts during QA/evaluation
+  function quickFill(testEmail, testPass = "password123") {
+    setEmail(testEmail);
+    setPassword(testPass);
+    setErrorMsg("");
   }
 
   return (
     <div className="partner-login-wrap">
       <div className="partner-login-card">
+        {/* Header Branding */}
         <div style={{ textAlign: "center", marginBottom: "var(--space-lg)" }}>
           <div
             style={{
@@ -110,10 +75,25 @@ export default function PartnerLogin() {
           >
             <HouseLine size={32} weight="duotone" />
           </div>
-          <h1 style={{ fontSize: "1.75rem", margin: "0 0 8px", color: "var(--color-navy)", fontFamily: "var(--font-display)" }}>
+          <h1
+            style={{
+              fontSize: "1.75rem",
+              margin: "0 0 8px",
+              color: "var(--color-navy)",
+              fontFamily: "var(--font-display)",
+            }}
+          >
             Lama Bhai Host &amp; Partner Portal
           </h1>
-          <p style={{ color: "var(--color-text-muted)", fontSize: "0.95rem", margin: 0, maxWidth: "560px", marginInline: "auto" }}>
+          <p
+            style={{
+              color: "var(--color-text-muted)",
+              fontSize: "0.95rem",
+              margin: 0,
+              maxWidth: "560px",
+              marginInline: "auto",
+            }}
+          >
             Self-management console for homestay owners, village lodge operators, and local hosts across Sikkim.
           </p>
         </div>
@@ -133,200 +113,272 @@ export default function PartnerLogin() {
             color: "#166534",
           }}
         >
-          <ShieldCheck size={20} weight="fill" color="#16a34a" style={{ flexShrink: 0, marginTop: "2px" }} />
+          <ShieldCheck
+            size={20}
+            weight="fill"
+            color="#16a34a"
+            style={{ flexShrink: 0, marginTop: "2px" }}
+          />
           <div>
-            <strong>Strict Partner Scoping:</strong> Once you log in, your access is strictly confined to your assigned homestays and guest booking requests. Other partners' data and platform administration remain private.
+            <strong>Session Authenticated:</strong> Access is protected by HTTP-only session cookies and backend role authorization. Once authenticated, your access is strictly confined to your partner homestays and booking requests.
           </div>
         </div>
 
-        {/* Option A: Quick Host Selection */}
-        <div style={{ marginBottom: "var(--space-xl)" }}>
-          <h2 style={{ fontSize: "1.05rem", color: "var(--color-navy)", margin: "0 0 12px", display: "flex", alignItems: "center", gap: "8px" }}>
-            <UsersThree size={20} color="var(--color-peach-deep)" />
-            Select Your Host Profile:
-          </h2>
-
-          {approvedPartners.length === 0 ? (
-            <div
-              style={{
-                background: "var(--color-surface)",
-                border: "1px dashed var(--color-border)",
-                borderRadius: "var(--radius-sm)",
-                padding: "32px 20px",
-                textAlign: "center",
-                color: "var(--color-text-muted)",
-              }}
-            >
-              <UsersThree size={36} color="var(--color-peach-deep)" style={{ marginBottom: "8px" }} />
-              <h3 style={{ margin: "0 0 6px", color: "var(--color-navy)", fontSize: "1rem" }}>
-                No Partner Accounts Created Yet
-              </h3>
-              <p style={{ margin: 0, fontSize: "0.85rem", maxWidth: "460px", marginInline: "auto" }}>
-                All dummy partner records have been cleared. As an administrator, you can add verified host partners from the{" "}
-                <Link to="/admin/partners" style={{ color: "var(--color-peach-deep)", fontWeight: 700 }}>
-                  Admin Console &rarr; Partners
-                </Link>{" "}
-                page.
-              </p>
-            </div>
-          ) : (
-            <div className="partner-host-select-grid">
-              {approvedPartners.map((partner) => {
-                // Count stays assigned
-                const stayCount = allStays.filter(
-                  (s) => s.partnerId === partner.id || (partner.assignedPropertyIds || []).includes(s.id)
-                ).length;
-
-                return (
-                  <div
-                    key={partner.id}
-                    className="partner-host-tile"
-                    onClick={() => handleSelectHost(partner.id)}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
-                      <strong style={{ fontSize: "0.95rem", color: "var(--color-navy)" }}>{partner.name}</strong>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          padding: "2px 6px",
-                          borderRadius: "999px",
-                          background: "#e8f5e9",
-                          color: "#1b5e20",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {partner.location}
-                      </span>
-                    </div>
-
-                    <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", margin: "0 0 8px" }}>
-                      {partner.agency || "Local Homestay Host"}
-                    </p>
-
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.78rem" }}>
-                      <span style={{ color: "var(--color-forest)", fontWeight: 600 }}>
-                        {stayCount} {stayCount === 1 ? "Homestay" : "Homestays"}
-                      </span>
-                      <span style={{ color: "var(--color-peach-deep)", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                        Log in <ArrowRight size={13} weight="bold" />
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Pending / Suspended / Other Partners Section */}
-          {pendingOrSuspendedPartners.length > 0 && (
-            <div style={{ marginTop: "var(--space-lg)", paddingTop: "var(--space-md)", borderTop: "1px dashed var(--color-border)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--color-navy)" }}>
-                  Pending Applications &amp; Non-Active Partner Accounts ({pendingOrSuspendedPartners.length})
-                </span>
-                <span style={{ fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
-                  Access is blocked until approved by Main Admin
-                </span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                {pendingOrSuspendedPartners.map((p) => {
-                  const statusColors = {
-                    Pending: { bg: "#fef3c7", color: "#b45309", border: "#fde68a" },
-                    Suspended: { bg: "#fee2e2", color: "#b91c1c", border: "#fecaca" },
-                    Rejected: { bg: "#fee2e2", color: "#991b1b", border: "#fecaca" },
-                    Inactive: { bg: "#f1f5f9", color: "#475569", border: "#cbd5e1" },
-                  };
-                  const colors = statusColors[p.status] || statusColors.Pending;
-
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => handleSelectHost(p.id)}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        padding: "8px 12px",
-                        borderRadius: "var(--radius-sm)",
-                        border: `1px solid ${colors.border}`,
-                        background: colors.bg,
-                        cursor: "pointer",
-                        fontSize: "0.82rem",
-                      }}
-                      title="Click to check access restriction behavior"
-                    >
-                      <div>
-                        <strong style={{ color: "var(--color-navy)" }}>{p.name}</strong>{" "}
-                        <span style={{ color: "var(--color-text-muted)" }}>({p.agency || "Homestay"}, {p.location})</span>
-                      </div>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          padding: "2px 8px",
-                          borderRadius: "999px",
-                          background: "#ffffff",
-                          color: colors.color,
-                          border: `1px solid ${colors.border}`,
-                        }}
-                      >
-                        {p.status || "Pending"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Option B: Enter phone number */}
-        <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "var(--space-md)" }}>
-          <form onSubmit={handlePhoneSubmit} style={{ maxWidth: "420px", margin: "0 auto" }}>
-            <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "var(--color-navy)", marginBottom: "6px" }}>
-              Or enter your registered phone number:
-            </label>
-            <div style={{ display: "flex", gap: "8px" }}>
-              <input
-                type="text"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="+91 98765 43210"
+        {/* Real Backend Authentication Form */}
+        <div style={{ maxWidth: "440px", margin: "0 auto var(--space-lg)" }}>
+          <form onSubmit={handleLoginSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <div>
+              <label
+                htmlFor="partner-email"
                 style={{
-                  flexGrow: 1,
-                  padding: "8px 12px",
-                  borderRadius: "var(--radius-sm)",
-                  border: "1px solid var(--color-border)",
-                  fontSize: "0.9rem",
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  background: "var(--color-peach)",
+                  display: "block",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
                   color: "var(--color-navy)",
-                  border: "none",
-                  padding: "8px 16px",
-                  borderRadius: "var(--radius-sm)",
-                  fontWeight: 700,
-                  cursor: "pointer",
+                  marginBottom: "6px",
                 }}
               >
-                Log In
+                Registered Email Address
+              </label>
+              <div style={{ position: "relative" }}>
+                <EnvelopeSimple
+                  size={18}
+                  style={{
+                    position: "absolute",
+                    left: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "var(--color-text-muted)",
+                  }}
+                />
+                <input
+                  id="partner-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. host@lamabhaila.com"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px 10px 38px",
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--color-border)",
+                    fontSize: "0.92rem",
+                    boxSizing: "border-box",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="partner-password"
+                style={{
+                  display: "block",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  color: "var(--color-navy)",
+                  marginBottom: "6px",
+                }}
+              >
+                Password
+              </label>
+              <div style={{ position: "relative" }}>
+                <LockKey
+                  size={18}
+                  style={{
+                    position: "absolute",
+                    left: "12px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "var(--color-text-muted)",
+                  }}
+                />
+                <input
+                  id="partner-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px 12px 10px 38px",
+                    borderRadius: "var(--radius-sm)",
+                    border: "1px solid var(--color-border)",
+                    fontSize: "0.92rem",
+                    boxSizing: "border-box",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
+            </div>
+
+            {errorMsg && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: "8px",
+                  background: "#fee2e2",
+                  border: "1px solid #fecaca",
+                  color: "#991b1b",
+                  padding: "10px 12px",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: "0.84rem",
+                  lineHeight: 1.4,
+                }}
+              >
+                <WarningCircle size={18} style={{ flexShrink: 0, marginTop: "2px" }} />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
+            <button
+              id="partner-login-btn"
+              type="submit"
+              disabled={submitting}
+              style={{
+                background: "var(--color-peach-deep)",
+                color: "#ffffff",
+                border: "none",
+                padding: "12px 20px",
+                borderRadius: "var(--radius-sm)",
+                fontWeight: 700,
+                fontSize: "0.95rem",
+                cursor: submitting ? "not-allowed" : "pointer",
+                opacity: submitting ? 0.7 : 1,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                transition: "background 0.2s ease",
+              }}
+            >
+              {submitting ? "Signing In..." : "Log In to Host Portal"}
+              <ArrowRight size={16} weight="bold" />
+            </button>
+          </form>
+
+          {/* Quick Demo / QA Credentials Helper */}
+          <div
+            style={{
+              marginTop: "var(--space-md)",
+              padding: "12px 14px",
+              background: "var(--color-cream)",
+              border: "1px dashed var(--color-border)",
+              borderRadius: "var(--radius-sm)",
+              fontSize: "0.8rem",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                color: "var(--color-navy)",
+                fontWeight: 700,
+                marginBottom: "8px",
+              }}
+            >
+              <Sparkle size={14} color="var(--color-peach-deep)" />
+              <span>Quick Test Accounts (Backend Session)</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <button
+                type="button"
+                onClick={() => quickFill("mw_owner_82977@lama.test", "password123")}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  background: "#ffffff",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "4px",
+                  padding: "5px 8px",
+                  fontSize: "0.75rem",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <span><strong>Approved Host:</strong> mw_owner_82977@lama.test</span>
+                <span style={{ color: "var(--color-forest)", fontWeight: 600 }}>Fill &rarr;</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => quickFill("mingma_05167@lama.test", "password123")}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  background: "#ffffff",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "4px",
+                  padding: "5px 8px",
+                  fontSize: "0.75rem",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <span><strong>Pending Host:</strong> mingma_05167@lama.test</span>
+                <span style={{ color: "#b45309", fontWeight: 600 }}>Fill &rarr;</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => quickFill("passang_05167@lama.test", "password123")}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  background: "#ffffff",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "4px",
+                  padding: "5px 8px",
+                  fontSize: "0.75rem",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <span><strong>Tourist (Blocked):</strong> passang_05167@lama.test</span>
+                <span style={{ color: "#991b1b", fontWeight: 600 }}>Fill &rarr;</span>
               </button>
             </div>
-            {errorMsg && (
-              <p style={{ color: "#b91c1c", fontSize: "0.8rem", marginTop: "6px" }}>{errorMsg}</p>
-            )}
-          </form>
+          </div>
         </div>
 
         {/* Return Links */}
-        <div style={{ marginTop: "var(--space-xl)", textAlign: "center", display: "flex", justifyContent: "center", gap: "20px", fontSize: "0.85rem" }}>
-          <Link to="/" style={{ color: "var(--color-navy)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+        <div
+          style={{
+            marginTop: "var(--space-md)",
+            borderTop: "1px solid var(--color-border)",
+            paddingTop: "var(--space-md)",
+            textAlign: "center",
+            display: "flex",
+            justifyContent: "center",
+            gap: "20px",
+            fontSize: "0.85rem",
+          }}
+        >
+          <Link
+            to="/"
+            style={{
+              color: "var(--color-navy)",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
             &larr; Return to Lama Bhai Tourism
           </Link>
-          <Link to="/admin" style={{ color: "var(--color-peach-deep)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+          <Link
+            to="/admin"
+            style={{
+              color: "var(--color-peach-deep)",
+              textDecoration: "none",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+            }}
+          >
             Main Admin Console <ArrowSquareOut size={14} />
           </Link>
         </div>

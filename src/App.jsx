@@ -121,31 +121,25 @@ export default function App() {
         </Route>
 
         <Route
-          path="/partner"
           element={
             <PartnerAuthProvider>
-              <PartnerLayout />
+              <Outlet />
             </PartnerAuthProvider>
           }
         >
-          <Route index element={<PartnerDashboard />} />
-          <Route path="properties" element={<PartnerProperties />} />
-          <Route path="stays" element={<Navigate to="/partner/properties" replace />} />
-          <Route path="availability" element={<PartnerAvailability />} />
-          <Route path="photos" element={<PartnerPhotos />} />
-          <Route path="bookings" element={<PartnerBookings />} />
-          <Route path="profile" element={<PartnerProfile />} />
-          <Route path="offers" element={<PartnerOffers />} />
-          <Route path="*" element={<Navigate to="/partner" replace />} />
+          <Route path="/partner/login" element={<PartnerLogin />} />
+          <Route path="/partner" element={<PartnerLayout />}>
+            <Route index element={<PartnerDashboard />} />
+            <Route path="properties" element={<PartnerProperties />} />
+            <Route path="stays" element={<Navigate to="/partner/properties" replace />} />
+            <Route path="availability" element={<PartnerAvailability />} />
+            <Route path="photos" element={<PartnerPhotos />} />
+            <Route path="bookings" element={<PartnerBookings />} />
+            <Route path="profile" element={<PartnerProfile />} />
+            <Route path="offers" element={<PartnerOffers />} />
+            <Route path="*" element={<Navigate to="/partner" replace />} />
+          </Route>
         </Route>
-        <Route
-          path="/partner/login"
-          element={
-            <PartnerAuthProvider>
-              <PartnerLogin />
-            </PartnerAuthProvider>
-          }
-        />
         <Route path="/partners" element={<Navigate to="/partner" replace />} />
         <Route path="/owner" element={<Navigate to="/partner" replace />} />
         <Route path="/owner/*" element={<Navigate to="/partner" replace />} />

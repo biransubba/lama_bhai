@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { NavLink, Outlet, Link, useNavigate } from "react-router-dom";
+import React from "react";
+import { NavLink, Outlet, Link, useNavigate, Navigate } from "react-router-dom";
 import {
   SquaresFour,
   HouseLine,
@@ -7,7 +7,6 @@ import {
   ImageSquare,
   ListChecks,
   UserCircle,
-  UserSwitch,
   ArrowSquareOut,
   MapPin,
   CheckCircle,
@@ -16,31 +15,61 @@ import {
   Tag,
 } from "phosphor-react";
 import { usePartnerAuth } from "../context/PartnerAuthContext.jsx";
-import PartnerLogin from "../pages/PartnerLogin.jsx";
 import "../styles/partner.css";
 
 export default function PartnerLayout() {
   const {
+    user,
+    loading,
+    authenticated,
     currentPartner,
     isApproved,
-    approvedPartners,
     partnerStays,
     partnerOffers,
     partnerBookings,
-    loginAsPartner,
     logoutPartner,
   } = usePartnerAuth();
 
-  const [showSwitchModal, setShowSwitchModal] = useState(false);
   const navigate = useNavigate();
 
-  // If no partner is logged in, show the login / selector view directly
-  if (!currentPartner) {
-    return <PartnerLogin />;
+  // 1. Show elegant loading state while session verification (/api/auth/me) is in flight
+  if (loading) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--color-cream)",
+          fontFamily: "var(--font-sans)",
+          color: "var(--color-navy)",
+          gap: "14px",
+        }}
+      >
+        <div
+          style={{
+            width: "38px",
+            height: "38px",
+            border: "3px solid var(--color-peach-light)",
+            borderTopColor: "var(--color-peach-deep)",
+            borderRadius: "50%",
+            animation: "partner-spin 0.8s linear infinite",
+          }}
+        />
+        <style>{`@keyframes partner-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        <span style={{ fontSize: "0.92rem", fontWeight: 600 }}>Verifying partner session...</span>
+      </div>
+    );
   }
 
-  // Requirement 5: Prevent unapproved, pending, rejected, or suspended partners
-  // from being treated as active partners in the frontend simulation (/partner).
+  // 2. Protect route: If not authenticated, redirect to /partner/login (Requirement 6)
+  if (!authenticated || !user || !currentPartner) {
+    return <Navigate to="/partner/login" replace />;
+  }
+
+  // 3. Status restriction view for authenticated partners not yet Approved
   if (!isApproved) {
     const status = currentPartner.status || "Pending";
     const statusConfigs = {
@@ -179,16 +208,16 @@ export default function PartnerLayout() {
               {currentPartner.name}
             </div>
             <div style={{ marginBottom: "6px" }}>
+              <strong style={{ color: "var(--color-navy)" }}>Email:</strong>{" "}
+              {currentPartner.email}
+            </div>
+            <div style={{ marginBottom: "6px" }}>
               <strong style={{ color: "var(--color-navy)" }}>Homestay / Business:</strong>{" "}
               {currentPartner.agency || "N/A"}
             </div>
             <div style={{ marginBottom: "6px" }}>
               <strong style={{ color: "var(--color-navy)" }}>Base Location:</strong>{" "}
               {currentPartner.location}
-            </div>
-            <div style={{ marginBottom: "6px" }}>
-              <strong style={{ color: "var(--color-navy)" }}>Partner ID:</strong>{" "}
-              <code>{currentPartner.id}</code>
             </div>
             {currentPartner.reviewerNotes && (
               <div style={{ marginTop: "10px", paddingTop: "8px", borderTop: "1px dashed var(--color-border)" }}>
@@ -201,7 +230,10 @@ export default function PartnerLayout() {
           <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
             <button
               type="button"
-              onClick={() => logoutPartner()}
+              onClick={async () => {
+                await logoutPartner();
+                navigate("/partner/login");
+              }}
               style={{
                 background: "var(--color-navy)",
                 color: "#ffffff",
@@ -215,7 +247,7 @@ export default function PartnerLayout() {
                 gap: "6px",
               }}
             >
-              <SignOut size={16} /> Switch Host Profile
+              <SignOut size={16} /> Sign Out
             </button>
             <Link
               to="/"
@@ -359,15 +391,6 @@ export default function PartnerLayout() {
 
         {/* Footer Actions */}
         <div className="partner-sidebar__footer">
-          <button
-            type="button"
-            className="partner-sidebar__btn partner-sidebar__btn--switch"
-            onClick={() => setShowSwitchModal(true)}
-            title="Switch to another partner for testing"
-          >
-            <UserSwitch size={15} /> Switch Host Profile
-          </button>
-
           <Link
             to="/"
             className="partner-sidebar__btn partner-sidebar__btn--exit"
@@ -379,9 +402,9 @@ export default function PartnerLayout() {
           <button
             type="button"
             className="partner-sidebar__btn partner-sidebar__btn--exit"
-            onClick={() => {
-              logoutPartner();
-              navigate("/partner");
+            onClick={async () => {
+              await logoutPartner();
+              navigate("/partner/login");
             }}
             style={{ color: "#ef9a9a" }}
           >
@@ -392,7 +415,7 @@ export default function PartnerLayout() {
 
       {/* Main Content Area */}
       <main className="partner-main">
-        {/* Frontend Role Simulation Disclaimer (Requirements 6, 7, 9) */}
+        {/* Real Backend Session Status Banner */}
         <div
           style={{
             display: "flex",
@@ -400,114 +423,29 @@ export default function PartnerLayout() {
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: "10px",
-            background: "#fffbeb",
-            border: "1px solid #fef3c7",
-            borderLeft: "4px solid #f59e0b",
+            background: "#f0fdf4",
+            border: "1px solid #bbf7d0",
+            borderLeft: "4px solid #16a34a",
             borderRadius: "var(--radius-sm)",
             padding: "8px 14px",
             marginBottom: "var(--space-md)",
             fontSize: "0.8rem",
-            color: "#92400e",
+            color: "#166534",
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <ShieldWarning size={16} color="#d97706" style={{ flexShrink: 0 }} />
+            <CheckCircle size={16} weight="fill" color="#16a34a" style={{ flexShrink: 0 }} />
             <span>
-              <strong>Frontend Role Simulation:</strong> Active as <strong>{currentPartner.name}</strong> ({currentPartner.agency}). Scoped strictly to your {partnerStays.length} assigned property records.
+              <strong>Authenticated Host Session:</strong> Active as <strong>{currentPartner.name}</strong> ({currentPartner.agency}). Scoped strictly to your host records.
             </span>
           </div>
-          <span style={{ fontSize: "0.75rem", color: "#b45309", fontStyle: "italic" }}>
-            Prototype simulation — server-side authorization will be implemented in backend.
+          <span style={{ fontSize: "0.75rem", color: "#15803d", fontWeight: 600 }}>
+            Session Active &bull; HTTP-Only Cookie Verified
           </span>
         </div>
 
         <Outlet />
       </main>
-
-      {/* Switch Host Modal */}
-      {showSwitchModal && (
-        <div
-          className="admin-modal-backdrop"
-          onClick={() => setShowSwitchModal(false)}
-        >
-          <div
-            className="admin-modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "520px" }}
-          >
-            <div className="admin-modal-header">
-              <h3 style={{ margin: 0, fontSize: "1.15rem", color: "var(--color-navy)" }}>
-                Switch Host Profile
-              </h3>
-              <button
-                type="button"
-                className="admin-modal-close"
-                onClick={() => setShowSwitchModal(false)}
-              >
-                &times;
-              </button>
-            </div>
-            <div className="admin-modal-body" style={{ maxHeight: "400px", overflowY: "auto" }}>
-              <p style={{ fontSize: "0.85rem", color: "var(--color-text-muted)", marginTop: 0 }}>
-                Select a different approved partner to simulate their individual scoped view:
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {approvedPartners.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      loginAsPartner(p.id);
-                      setShowSwitchModal(false);
-                    }}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "12px 14px",
-                      borderRadius: "var(--radius-sm)",
-                      border: p.id === currentPartner.id ? "2px solid var(--color-peach-deep)" : "1px solid var(--color-border)",
-                      background: p.id === currentPartner.id ? "var(--color-peach-light)" : "var(--color-surface)",
-                      cursor: "pointer",
-                      textAlign: "left",
-                    }}
-                  >
-                    <div>
-                      <strong style={{ display: "block", color: "var(--color-navy)", fontSize: "0.92rem" }}>
-                        {p.name} {p.id === currentPartner.id && "(Active)"}
-                      </strong>
-                      <span style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>
-                        {p.agency} · {p.location}
-                      </span>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: "0.75rem",
-                        padding: "3px 8px",
-                        borderRadius: "999px",
-                        background: "#e8f5e9",
-                        color: "#1b5e20",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {(p.assignedPropertyIds || []).length} Stays
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="admin-modal-footer">
-              <button
-                type="button"
-                className="admin-btn admin-btn--secondary"
-                onClick={() => setShowSwitchModal(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
