@@ -15,6 +15,7 @@ router.patch('/properties/:id/status', adminController.updatePropertyStatus);
 
 // Partner Management & Verification
 router.get('/partners', adminController.getAllPartners);
+router.post('/partners', adminController.createPartner);
 router.patch('/partners/:userId/status', adminController.updatePartnerStatus);
 
 // Review Moderation

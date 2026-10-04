@@ -111,12 +111,12 @@ exports.updatePropertyStatus = async (req, res, next) => {
  */
 exports.getAllPartners = async (req, res, next) => {
   try {
-    const { status, search, page = 1, limit = 20 } = req.query;
+    const { status, search, page = 1, limit = 50 } = req.query;
 
     const filter = { role: 'owner' };
 
     if (status && status !== 'all') {
-      filter['partnerProfile.verificationStatus'] = status;
+      filter['partnerProfile.verificationStatus'] = new RegExp(`^${status}$`, 'i');
     }
 
     if (search && search.trim()) {
@@ -124,13 +124,14 @@ exports.getAllPartners = async (req, res, next) => {
       filter.$or = [
         { name: searchRegex },
         { email: searchRegex },
+        { phone: searchRegex },
         { 'partnerProfile.agencyName': searchRegex },
         { 'partnerProfile.location': searchRegex },
       ];
     }
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
 
     const [partners, total] = await Promise.all([
@@ -210,8 +211,10 @@ exports.updatePartnerStatus = async (req, res, next) => {
 
     user.partnerProfile.verificationStatus = status;
     user.partnerProfile.reviewedAt = new Date();
-    if (reviewerNotes !== undefined) {
-      user.partnerProfile.reviewerNotes = reviewerNotes;
+    const notesToSave = reviewerNotes !== undefined ? reviewerNotes : (req.body.notes !== undefined ? req.body.notes : undefined);
+    if (notesToSave !== undefined) {
+      user.partnerProfile.reviewerNotes = notesToSave;
+      user.partnerProfile.notes = notesToSave;
     }
 
     await user.save({ validateBeforeSave: false });
@@ -225,6 +228,78 @@ exports.updatePartnerStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc    Create a new partner/host account by Admin
+ * @route   POST /api/admin/partners
+ * @access  Private (Admin only)
+ */
+exports.createPartner = async (req, res, next) => {
+  try {
+    const { name, phone, email, temporaryPassword, agencyName, location } = req.body;
+
+    // 1. Validation
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Partner name is required' });
+    }
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, error: 'Partner email is required' });
+    }
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({ success: false, error: 'Please provide a valid email address' });
+    }
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ success: false, error: 'Partner phone number is required' });
+    }
+    if (!temporaryPassword || temporaryPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Temporary password must be at least 6 characters long',
+      });
+    }
+
+    // 2. Check duplicate email (case-insensitive)
+    const normalizedEmail = email.toLowerCase().trim();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'A user with this email already exists.',
+      });
+    }
+
+    // 3. Create partner user (pre-save hook hashes password with bcrypt)
+    const partner = await User.create({
+      name: name.trim(),
+      email: normalizedEmail,
+      phone: phone.trim(),
+      password: temporaryPassword,
+      role: 'owner',
+      partnerProfile: {
+        agencyName: agencyName ? agencyName.trim() : name.trim(),
+        location: location ? location.trim() : 'Sikkim',
+        verificationStatus: 'Approved',
+        notes: 'Account created directly by Administrator',
+        reviewedAt: new Date(),
+      },
+      isActive: true,
+    });
+
+    // 4. Return sanitized partner object (pre-save / toJSON omits password)
+    const sanitized = partner.toObject();
+    delete sanitized.password;
+
+    return res.status(201).json({
+      success: true,
+      message: 'Partner created successfully.',
+      data: sanitized,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 /**
  * @desc    Get dashboard metrics & overview stats

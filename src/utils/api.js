@@ -222,9 +222,16 @@ export const api = {
         body: JSON.stringify(body),
       });
     },
-    getPartners: () =>
-      apiRequest('/admin/partners', {
+    getPartners: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return apiRequest(`/admin/partners${query ? `?${query}` : ''}`, {
         method: 'GET',
+      });
+    },
+    createPartner: (partnerData) =>
+      apiRequest('/admin/partners', {
+        method: 'POST',
+        body: JSON.stringify(partnerData),
       }),
     updatePartnerStatus: (userId, status, notes) =>
       apiRequest(`/admin/partners/${userId}/status`, {
