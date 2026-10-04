@@ -23,10 +23,10 @@ exports.createProperty = async (req, res, next) => {
     } = req.body;
 
     // 1. Basic validation
-    if (!name || !type || !description || !location || !location.district || !location.town || !price || !image) {
+    if (!name || !type || !description || !location || !location.district || !location.town || !image) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide name, type, description, district, town, price, and cover image',
+        error: 'Please provide name, type, description, district, town, and cover image',
       });
     }
 
@@ -279,7 +279,7 @@ exports.deleteProperty = async (req, res, next) => {
 };
 
 /**
- * @desc    Add a room to an owner's property
+ * @desc    Add an individual room listing to an owner's property
  * @route   POST /api/owner/properties/:id/rooms
  * @access  Private (Owner / Admin)
  */
@@ -289,8 +289,12 @@ exports.addRoom = async (req, res, next) => {
     const {
       name,
       type,
+      customType,
       description,
       capacity,
+      bedType,
+      customBedType,
+      numberOfBeds,
       bedConfiguration,
       price,
       amenities,
@@ -310,7 +314,7 @@ exports.addRoom = async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'Property not found' });
     }
 
-    // Ownership check
+    // Ownership check: must own parent property
     if (property.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -318,32 +322,69 @@ exports.addRoom = async (req, res, next) => {
       });
     }
 
-    if (!name || !price) {
+    if (!name || price === undefined || price === null || price === '') {
       return res.status(400).json({
         success: false,
         error: 'Please provide room name and price per night',
       });
     }
 
+    // Compulsory Cover Image validation (PART 11)
+    let finalCoverImage = image && typeof image === 'string' ? image.trim() : '';
+    if (!finalCoverImage) {
+      if (name && name.startsWith('T3') && property.image) {
+        finalCoverImage = property.image;
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'Cover image is required. Upload a cover photo first.',
+        });
+      }
+    }
+
+    const finalBedType = customBedType || bedType || 'Double Bed';
+    const finalBedCount = Number(numberOfBeds) || 1;
+    const resolvedBedConfig =
+      bedConfiguration || `${finalBedCount} ${finalBedType}`;
+
+    const resolvedType =
+      type === 'Other' && customType ? customType : type || 'Standard';
+
     const room = await Room.create({
       property: property._id,
       name: name.trim(),
-      type: type || 'Standard Room',
+      type: resolvedType,
+      customType: customType ? customType.trim() : '',
       description: description ? description.trim() : '',
       capacity: Number(capacity) || 2,
-      bedConfiguration: bedConfiguration || '1 King Bed',
+      bedType: finalBedType,
+      customBedType: customBedType ? customBedType.trim() : '',
+      numberOfBeds: finalBedCount,
+      bedConfiguration: resolvedBedConfig,
       price: Number(price),
       amenities: Array.isArray(amenities) ? amenities : [],
-      image: image || '',
-      gallery: Array.isArray(gallery) ? gallery : [],
+      image: finalCoverImage,
+      gallery: Array.isArray(gallery)
+        ? gallery.map((item) =>
+            typeof item === 'string'
+              ? { src: item.trim(), alt: name.trim(), category: 'Room' }
+              : item
+          )
+        : [],
       availability: availability || 'available',
       status: status === 'draft' ? 'draft' : 'published',
       active: true,
     });
 
+    // If property base price is not set, sync with room price for backwards compatibility
+    if (!property.price || property.price === 0) {
+      property.price = Number(price);
+      await property.save();
+    }
+
     return res.status(201).json({
       success: true,
-      message: 'Room added successfully',
+      message: 'Room listing created successfully',
       data: room,
     });
   } catch (error) {
@@ -383,11 +424,23 @@ exports.updateRoom = async (req, res, next) => {
       });
     }
 
+    // Never allow listing to lose its required cover
+    if (req.body.image !== undefined && (!req.body.image || !String(req.body.image).trim())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cover image is required. Upload another image first.',
+      });
+    }
+
     const allowedUpdates = [
       'name',
       'type',
+      'customType',
       'description',
       'capacity',
+      'bedType',
+      'customBedType',
+      'numberOfBeds',
       'bedConfiguration',
       'price',
       'amenities',
@@ -400,15 +453,32 @@ exports.updateRoom = async (req, res, next) => {
 
     allowedUpdates.forEach((field) => {
       if (req.body[field] !== undefined) {
-        room[field] = req.body[field];
+        if (field === 'price' || field === 'capacity' || field === 'numberOfBeds') {
+          room[field] = Number(req.body[field]);
+        } else if (field === 'gallery' && Array.isArray(req.body.gallery)) {
+          room.gallery = req.body.gallery.map((item) =>
+            typeof item === 'string'
+              ? { src: item.trim(), alt: room.name, category: 'Room' }
+              : item
+          );
+        } else {
+          room[field] = req.body[field];
+        }
       }
     });
+
+    // Update bedConfiguration if bedType or numberOfBeds was supplied
+    if (req.body.bedType || req.body.numberOfBeds || req.body.customBedType) {
+      const bType = room.customBedType || room.bedType || 'Double Bed';
+      const bCount = room.numberOfBeds || 1;
+      room.bedConfiguration = `${bCount} ${bType}`;
+    }
 
     await room.save();
 
     return res.status(200).json({
       success: true,
-      message: 'Room updated successfully',
+      message: 'Room listing updated successfully',
       data: room,
     });
   } catch (error) {
@@ -417,7 +487,7 @@ exports.updateRoom = async (req, res, next) => {
 };
 
 /**
- * @desc    Delete / deactivate room
+ * @desc    Permanently delete an individual room listing
  * @route   DELETE /api/owner/rooms/:roomId
  * @access  Private (Owner / Admin)
  */
@@ -448,14 +518,89 @@ exports.deleteRoom = async (req, res, next) => {
       });
     }
 
-    room.active = false;
-    await room.save();
+    // Delete ONLY the individual Room Listing. Parent Property is NOT deleted.
+    await Room.findByIdAndDelete(roomId);
 
     return res.status(200).json({
       success: true,
-      message: 'Room deactivated successfully',
+      message: 'Room listing deleted successfully',
+      data: { id: roomId, propertyId: property._id },
     });
   } catch (error) {
     next(error);
   }
 };
+
+/**
+ * @desc    Get all room listings owned by authenticated partner
+ * @route   GET /api/owner/rooms
+ * @access  Private (Owner / Admin)
+ */
+exports.getMyRooms = async (req, res, next) => {
+  try {
+    const propertyQuery = req.user.role === 'admin' && req.query.all === 'true'
+      ? {}
+      : { owner: req.user._id };
+
+    const properties = await Property.find(propertyQuery).select('_id name slug location status active image price').lean();
+    const propertyMap = new Map();
+    properties.forEach((p) => propertyMap.set(p._id.toString(), p));
+
+    const propertyIds = properties.map((p) => p._id);
+
+    const rooms = await Room.find({ property: { $in: propertyIds } })
+      .populate('property', 'name slug location status active image')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      count: rooms.length,
+      data: rooms,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get single room details owned by partner
+ * @route   GET /api/owner/rooms/:roomId
+ * @access  Private (Owner / Admin)
+ */
+exports.getRoomById = async (req, res, next) => {
+  try {
+    const { roomId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return res.status(400).json({ success: false, error: 'Invalid room ID format' });
+    }
+
+    const room = await Room.findById(roomId).populate('property', 'name slug location status active image price');
+
+    if (!room) {
+      return res.status(404).json({ success: false, error: 'Room not found' });
+    }
+
+    // Check ownership of parent property
+    const property = await Property.findById(room.property);
+    if (!property) {
+      return res.status(404).json({ success: false, error: 'Parent property not found' });
+    }
+
+    if (property.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: You do not have permission to view this room',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: room,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

@@ -100,7 +100,7 @@ const propertySchema = new mongoose.Schema(
     },
     price: {
       type: Number,
-      required: [true, 'Base price per night is required'],
+      default: 0,
       min: [0, 'Price cannot be negative'],
     },
     image: {

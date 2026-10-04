@@ -26,20 +26,13 @@ const roomSchema = new mongoose.Schema(
     type: {
       type: String,
       required: [true, 'Room type is required'],
-      enum: {
-        values: [
-          'Standard Room',
-          'Deluxe Room',
-          'Super Deluxe Room',
-          'Family Room',
-          'Suite',
-          'Traditional Wooden Room',
-          'Cottage / Cabin',
-          'Dormitory',
-        ],
-        message: '{VALUE} is not a valid room type',
-      },
-      default: 'Standard Room',
+      trim: true,
+      default: 'Standard',
+    },
+    customType: {
+      type: String,
+      trim: true,
+      default: '',
     },
     description: {
       type: String,
@@ -52,10 +45,25 @@ const roomSchema = new mongoose.Schema(
       min: [1, 'Capacity must be at least 1 guest'],
       default: 2,
     },
+    bedType: {
+      type: String,
+      trim: true,
+      default: 'Double Bed',
+    },
+    customBedType: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    numberOfBeds: {
+      type: Number,
+      min: [1, 'Must have at least 1 bed'],
+      default: 1,
+    },
     bedConfiguration: {
       type: String,
       trim: true,
-      default: '1 King Bed',
+      default: '1 Double Bed',
     },
     price: {
       type: Number,
@@ -69,7 +77,7 @@ const roomSchema = new mongoose.Schema(
     image: {
       type: String,
       trim: true,
-      default: '',
+      required: [true, 'Cover image is required'],
     },
     gallery: {
       type: [roomGallerySchema],
