@@ -147,6 +147,14 @@ export default function App() {
           }
         />
         <Route path="/partners" element={<Navigate to="/partner" replace />} />
+        <Route path="/owner" element={<Navigate to="/partner" replace />} />
+        <Route path="/owner/*" element={<Navigate to="/partner" replace />} />
+        <Route path="/host" element={<Navigate to="/partner" replace />} />
+        <Route path="/host/*" element={<Navigate to="/partner" replace />} />
+        <Route path="/api/owner" element={<Navigate to="/partner" replace />} />
+        <Route path="/api/owner/*" element={<Navigate to="/partner" replace />} />
+        <Route path="/api/admin" element={<Navigate to="/admin" replace />} />
+        <Route path="/api/admin/*" element={<Navigate to="/admin" replace />} />
 
         {/* Global Fallback for unknown URLs */}
         <Route path="*" element={<NotFound />} />
