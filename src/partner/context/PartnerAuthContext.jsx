@@ -171,6 +171,14 @@ export function PartnerAuthProvider({ children }) {
   const isApproved = Boolean(
     user &&
       (user.role === "admin" ||
+        user.partnerProfile?.verificationStatus === "Approved" ||
+        user.partnerProfile?.verificationStatus === "Pending" ||
+        !user.partnerProfile?.verificationStatus)
+  );
+
+  const isVerifiedHost = Boolean(
+    user &&
+      (user.role === "admin" ||
         user.partnerProfile?.verificationStatus === "Approved")
   );
 
@@ -254,6 +262,7 @@ export function PartnerAuthProvider({ children }) {
         partnerId,
         currentPartner,
         isApproved,
+        isVerifiedHost,
         approvedPartners,
         allPartners: partnersList,
         partnerStays,

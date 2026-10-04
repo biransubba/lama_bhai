@@ -49,7 +49,21 @@ exports.createProperty = async (req, res, next) => {
         district: location.district,
         town: location.town.trim(),
         address: location.address ? location.address.trim() : '',
-        coordinates: location.coordinates || { latitude: null, longitude: null },
+        pincode: location.pincode ? String(location.pincode).trim() : '',
+        coordinates: {
+          latitude:
+            location.coordinates?.latitude !== undefined &&
+            location.coordinates?.latitude !== null &&
+            location.coordinates?.latitude !== ''
+              ? Number(location.coordinates.latitude)
+              : null,
+          longitude:
+            location.coordinates?.longitude !== undefined &&
+            location.coordinates?.longitude !== null &&
+            location.coordinates?.longitude !== ''
+              ? Number(location.coordinates.longitude)
+              : null,
+        },
       },
       price: Number(price),
       image: image.trim(),

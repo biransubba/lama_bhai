@@ -13,6 +13,7 @@ import {
   X,
   Phone,
   CurrencyInr,
+  Plus,
 } from "phosphor-react";
 import { usePartnerAuth } from "../context/PartnerAuthContext.jsx";
 import { staysStore } from "../../data/staysStore.js";
@@ -118,6 +119,25 @@ export default function PartnerStays() {
             Properties assigned to <strong>{currentPartner?.name}</strong> ({currentPartner?.agency}). Update room availability, pricing, photos, and amenities.
           </p>
         </div>
+        <Link
+          to="/partner/properties?add=true"
+          className="admin-btn admin-btn--primary"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            fontSize: "0.92rem",
+            padding: "10px 18px",
+            fontWeight: 700,
+            background: "var(--color-peach-deep)",
+            color: "#ffffff",
+            borderRadius: "var(--radius-sm)",
+            textDecoration: "none",
+          }}
+          title="Create a new property listing"
+        >
+          <Plus size={16} weight="bold" /> + Add Property / Listing
+        </Link>
       </div>
 
       {/* Filter and Search Bar */}

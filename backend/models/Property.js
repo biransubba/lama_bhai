@@ -84,6 +84,11 @@ const propertySchema = new mongoose.Schema(
         trim: true,
         default: '',
       },
+      pincode: {
+        type: String,
+        trim: true,
+        default: '',
+      },
       coordinates: {
         latitude: { type: Number, default: null },
         longitude: { type: Number, default: null },

@@ -54,7 +54,24 @@ export default function PartnerDashboard() {
           </p>
         </div>
 
-        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+          <Link
+            to="/partner/properties?add=true"
+            className="admin-btn admin-btn--primary"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "0.88rem",
+              padding: "8px 16px",
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+            id="partner-dashboard-header-add-btn"
+            title="Create and submit a new property listing"
+          >
+            <Plus size={16} weight="bold" /> + Add Property / Listing
+          </Link>
           <span
             style={{
               display: "inline-flex",
@@ -184,6 +201,30 @@ export default function PartnerDashboard() {
           Partner Management Sections
         </h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "12px" }}>
+          <Link
+            to="/partner/properties?add=true"
+            id="partner-dashboard-card-add-btn"
+            style={{
+              background: "#fffaf8",
+              border: "1.5px dashed var(--color-peach-deep)",
+              borderRadius: "var(--radius-sm)",
+              padding: "16px",
+              textDecoration: "none",
+              color: "inherit",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              transition: "transform 0.15s ease",
+            }}
+            title="Create a new property listing"
+          >
+            <Plus size={24} color="var(--color-peach-deep)" weight="bold" />
+            <strong style={{ color: "var(--color-peach-deep)", fontSize: "0.95rem", marginTop: "4px" }}>+ Add Property / Listing</strong>
+            <span style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>
+              Submit a new homestay or hotel listing
+            </span>
+          </Link>
+
           <Link
             to="/partner/properties"
             style={{

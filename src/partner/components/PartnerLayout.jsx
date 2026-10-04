@@ -13,6 +13,8 @@ import {
   SignOut,
   ShieldWarning,
   Tag,
+  Plus,
+  WarningCircle,
 } from "phosphor-react";
 import { usePartnerAuth } from "../context/PartnerAuthContext.jsx";
 import "../styles/partner.css";
@@ -69,19 +71,15 @@ export default function PartnerLayout() {
     return <Navigate to="/partner/login" replace />;
   }
 
-  // 3. Status restriction view for authenticated partners not yet Approved
-  if (!isApproved) {
-    const status = currentPartner.status || "Pending";
+  // 3. Status restriction view for suspended or rejected partner accounts
+  const isBlocked =
+    currentPartner.status === "Suspended" ||
+    currentPartner.status === "Rejected" ||
+    currentPartner.status === "Inactive";
+
+  if (isBlocked) {
+    const status = currentPartner.status || "Suspended";
     const statusConfigs = {
-      Pending: {
-        title: "Partnership Application Under Review",
-        color: "#b45309",
-        bg: "#fef3c7",
-        border: "#fde68a",
-        badgeBg: "#fffbeb",
-        message:
-          "Your partnership request has been recorded and is currently PENDING review by Lama Bhai Tourism Main Admin. Once approved, the admin will link your properties and grant access to this host portal.",
-      },
       Suspended: {
         title: "Partner Account Suspended",
         color: "#b91c1c",
@@ -111,7 +109,7 @@ export default function PartnerLayout() {
       },
     };
 
-    const cfg = statusConfigs[status] || statusConfigs.Pending;
+    const cfg = statusConfigs[status] || statusConfigs.Suspended;
 
     return (
       <div
@@ -364,6 +362,32 @@ export default function PartnerLayout() {
           </div>
         </div>
 
+        {/* Primary CTA: Add Property / Listing */}
+        <div style={{ padding: "0 1.25rem 0.85rem" }}>
+          <Link
+            to="/partner/properties?add=true"
+            id="partner-sidebar-add-property-btn"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              background: "var(--color-peach-deep)",
+              color: "#ffffff",
+              padding: "10px 14px",
+              borderRadius: "var(--radius-sm)",
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              textDecoration: "none",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)",
+              transition: "all 0.15s ease",
+            }}
+            title="Create and submit a new property listing"
+          >
+            <Plus size={16} weight="bold" /> + Add Property / Listing
+          </Link>
+        </div>
+
         {/* Navigation Items */}
         <nav className="partner-sidebar__nav">
           {navItems.map((item) => (
@@ -443,6 +467,41 @@ export default function PartnerLayout() {
             Session Active &bull; HTTP-Only Cookie Verified
           </span>
         </div>
+
+        {/* Host Application Pending Notice Banner */}
+        {currentPartner.status === "Pending" && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "10px",
+              background: "#fffbeb",
+              border: "1px solid #fde68a",
+              borderLeft: "4px solid #b45309",
+              borderRadius: "var(--radius-sm)",
+              padding: "10px 14px",
+              marginBottom: "var(--space-md)",
+              fontSize: "0.85rem",
+              color: "#92400e",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <WarningCircle size={18} weight="fill" color="#b45309" style={{ flexShrink: 0 }} />
+              <span>
+                <strong>Host Profile Under Review:</strong> Your host account verification is in progress. You have full access to create and submit property listings below!
+              </span>
+            </div>
+            <Link
+              to="/partner/properties?add=true"
+              className="admin-btn admin-btn--primary"
+              style={{ fontSize: "0.8rem", padding: "6px 14px", textDecoration: "none" }}
+            >
+              + Add Property
+            </Link>
+          </div>
+        )}
 
         <Outlet />
       </main>
