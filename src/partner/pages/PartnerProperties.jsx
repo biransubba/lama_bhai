@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   HouseLine,
@@ -12,11 +12,11 @@ import {
   Check,
   Plus,
   Phone,
-  CalendarCheck,
   Bed,
+  WarningCircle,
 } from "phosphor-react";
 import { usePartnerAuth } from "../context/PartnerAuthContext.jsx";
-import { staysStore, getAllRoomsByPropertyId } from "../../data/staysStore.js";
+import { api } from "../../utils/api.js";
 import PhotoManagerModal from "../../admin/components/PhotoManagerModal.jsx";
 import PropertyRoomsManagerModal from "../../admin/components/PropertyRoomsManagerModal.jsx";
 import { parseAndFormatPrice } from "../../utils/priceFormatter.js";
@@ -35,64 +35,152 @@ const COMMON_AMENITIES = [
 ];
 
 export default function PartnerProperties() {
-  const { currentPartner, partnerStays, refreshAll } = usePartnerAuth();
+  const { currentPartner } = usePartnerAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Backend properties state (source of truth from MongoDB)
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
 
   const [search, setSearch] = useState("");
   const [filterAvailability, setFilterAvailability] = useState("");
 
-  // Modals
+  // Modals state
   const [editingStay, setEditingStay] = useState(null);
   const [photoModalStay, setPhotoModalStay] = useState(null);
   const [roomModalStay, setRoomModalStay] = useState(null);
 
+  // Edit form state
+  const [formData, setFormData] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+
+  // Load properties scoped strictly to authenticated owner from backend
+  const loadProperties = useCallback(async () => {
+    try {
+      setPageError("");
+      const res = await api.owner.getProperties();
+      if (res && res.success) {
+        setProperties(res.data || []);
+      } else {
+        setProperties([]);
+      }
+    } catch (err) {
+      if (err.status === 401) {
+        setPageError("Authentication required. Please log in to view your properties.");
+      } else if (err.status === 403) {
+        setPageError("Access denied: Partner/Owner account required to manage properties.");
+      } else if (err.status >= 500) {
+        setPageError("A server error occurred while retrieving properties. Please try again later.");
+      } else {
+        setPageError(err.message || "Failed to load properties from backend.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProperties();
+  }, [loadProperties]);
+
   // Sync with ?manageRooms=<stayId> query parameter
   useEffect(() => {
     const targetStayId = searchParams.get("manageRooms");
-    if (targetStayId && partnerStays.length > 0) {
-      const match = partnerStays.find((s) => s.id === targetStayId);
+    if (targetStayId && properties.length > 0) {
+      const match = properties.find((s) => (s._id || s.id) === targetStayId);
       if (match) {
         setRoomModalStay(match);
       }
     }
-  }, [searchParams, partnerStays]);
-
-  // Form state
-  const [formData, setFormData] = useState({});
+  }, [searchParams, properties]);
 
   function handleEditClick(stay) {
     setEditingStay(stay);
+    const locationStr =
+      typeof stay.location === "object" && stay.location !== null
+        ? (stay.location.town
+            ? `${stay.location.town}, ${stay.location.district}`
+            : stay.location.district || "")
+        : (stay.location || "");
+
+    const contactStr =
+      typeof stay.contactDetails === "object" && stay.contactDetails !== null
+        ? stay.contactDetails.phone || ""
+        : (stay.contactDetails || currentPartner?.phone || "");
+
     setFormData({
       name: stay.name || "",
-      location: stay.location || "",
+      location: locationStr,
       type: stay.type || "Homestay",
-      price: stay.price || "",
-      contactDetails: stay.contactDetails || currentPartner?.phone || "",
+      price: stay.price !== undefined && stay.price !== null ? String(stay.price) : "",
+      contactDetails: contactStr,
       description: stay.description || "",
-      amenities: Array.isArray(stay.amenities) ? stay.amenities : [],
-      availability: stay.availability || "available",
-      status: stay.status || (stay.active !== false ? "published" : "draft"),
+      amenities: Array.isArray(stay.amenities) ? [...stay.amenities] : [],
+      availability:
+        stay.availability ||
+        (stay.active !== false ? "available" : "unavailable"),
     });
+    setFormError("");
   }
 
-  function handleSaveStay(e) {
+  async function handleSaveStay(e) {
     e.preventDefault();
     if (!editingStay) return;
+    setSaving(true);
+    setFormError("");
 
-    // Requirement 3: Update permitted details of assigned property
-    // Partner cannot modify partnerId or delete the property from the platform (Requirement 7)
-    staysStore.update("id", editingStay.id, {
-      name: formData.name.trim(),
-      type: formData.type,
-      price: formData.price.trim() || null,
-      contactDetails: formData.contactDetails.trim() || null,
-      description: formData.description.trim(),
-      amenities: formData.amenities,
-      availability: formData.availability,
-    });
+    try {
+      const stayId = editingStay._id || editingStay.id;
+      const cleanPrice = String(formData.price || "").replace(/[^0-9.]/g, "");
+      const numericPrice = cleanPrice ? Number(cleanPrice) : (editingStay.price || 0);
 
-    setEditingStay(null);
-    refreshAll();
+      // Preserve or update location structure
+      let locationObj = editingStay.location;
+      if (typeof formData.location === "string" && formData.location.trim()) {
+        const parts = formData.location.split(",").map((s) => s.trim());
+        locationObj = {
+          district: editingStay.location?.district || "East Sikkim",
+          town: parts[0] || editingStay.location?.town || "Gangtok",
+          address: editingStay.location?.address || "",
+          coordinates: editingStay.location?.coordinates || { latitude: null, longitude: null },
+        };
+        if (parts.length > 1 && parts[1]) {
+          locationObj.district = parts[1];
+        }
+      }
+
+      const updatePayload = {
+        name: formData.name.trim(),
+        type: formData.type,
+        price: numericPrice,
+        description: formData.description.trim(),
+        amenities: formData.amenities || [],
+        availability: formData.availability,
+        location: locationObj,
+        contactDetails: {
+          phone: formData.contactDetails.trim(),
+          email: editingStay.contactDetails?.email || currentPartner?.email || "",
+        },
+      };
+
+      await api.owner.updateProperty(stayId, updatePayload);
+      setEditingStay(null);
+      await loadProperties();
+    } catch (err) {
+      if (err.status === 403) {
+        setFormError("Access denied: You do not have permission to modify this property.");
+      } else if (err.status === 404) {
+        setFormError("Property not found. It may have been removed.");
+      } else if (err.status === 400) {
+        setFormError(err.message || "Invalid property details provided. Please review inputs.");
+      } else {
+        setFormError(err.message || "Failed to save property changes. Please try again.");
+      }
+    } finally {
+      setSaving(false);
+    }
   }
 
   function toggleAmenity(amenity) {
@@ -104,20 +192,46 @@ export default function PartnerProperties() {
     }
   }
 
-  function toggleStayAvailability(stay) {
-    const nextStatus = stay.availability === "available" ? "unavailable" : "available";
-    staysStore.update("id", stay.id, { availability: nextStatus });
-    refreshAll();
+  async function toggleStayAvailability(stay) {
+    const isCurrentAvail =
+      stay.availability === "available" ||
+      (stay.availability !== "unavailable" && stay.active !== false);
+    const nextStatus = isCurrentAvail ? "unavailable" : "available";
+
+    try {
+      const stayId = stay._id || stay.id;
+      await api.owner.updateProperty(stayId, { availability: nextStatus });
+      await loadProperties();
+    } catch (err) {
+      if (err.status === 403) {
+        setPageError("Access denied: You do not have permission to update this property.");
+      } else {
+        setPageError(err.message || "Failed to update property availability.");
+      }
+    }
   }
 
-  // Filter scoped stays
-  const filteredStays = partnerStays.filter((stay) => {
+  // Filter scoped stays in memory
+  const filteredStays = properties.filter((stay) => {
+    const locationStr =
+      typeof stay.location === "object" && stay.location !== null
+        ? `${stay.location.town || ""} ${stay.location.district || ""}`
+        : (stay.location || "");
+
     const matchSearch =
       !search ||
       stay.name.toLowerCase().includes(search.toLowerCase()) ||
-      stay.location.toLowerCase().includes(search.toLowerCase());
+      locationStr.toLowerCase().includes(search.toLowerCase());
+
+    const isAvail =
+      stay.availability === "available" ||
+      (stay.availability !== "unavailable" && stay.active !== false);
+
     const matchAvail =
-      !filterAvailability || stay.availability === filterAvailability;
+      !filterAvailability ||
+      (filterAvailability === "available" && isAvail) ||
+      (filterAvailability === "unavailable" && !isAvail);
+
     return matchSearch && matchAvail;
   });
 
@@ -127,13 +241,33 @@ export default function PartnerProperties() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px", marginBottom: "var(--space-md)" }}>
         <div>
           <h1 className="admin-page-title" style={{ margin: 0 }}>
-            My Properties ({partnerStays.length})
+            My Properties ({properties.length})
           </h1>
           <p className="admin-page-note" style={{ margin: "4px 0 0" }}>
             Homestays and lodges assigned to <strong>{currentPartner?.name}</strong> ({currentPartner?.agency}). Update room rates, host contacts, descriptions, and amenities.
           </p>
         </div>
       </div>
+
+      {pageError && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "#fee2e2",
+            border: "1px solid #fecaca",
+            color: "#991b1b",
+            padding: "10px 14px",
+            borderRadius: "var(--radius-sm)",
+            marginBottom: "var(--space-md)",
+            fontSize: "0.85rem",
+          }}
+        >
+          <WarningCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{pageError}</span>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="admin-filter-bar" style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "var(--space-md)" }}>
@@ -164,24 +298,62 @@ export default function PartnerProperties() {
         </select>
       </div>
 
-      {/* Property Cards Grid */}
-      {filteredStays.length === 0 ? (
+      {/* Loading State */}
+      {loading ? (
+        <div style={{ padding: "60px 20px", textAlign: "center" }}>
+          <div
+            style={{
+              width: "36px",
+              height: "36px",
+              border: "3px solid var(--color-peach-light)",
+              borderTopColor: "var(--color-peach-deep)",
+              borderRadius: "50%",
+              animation: "partner-spin 0.8s linear infinite",
+              margin: "0 auto 12px",
+            }}
+          />
+          <style>{`@keyframes partner-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          <span style={{ color: "var(--color-navy)", fontSize: "0.95rem", fontWeight: 600 }}>
+            Loading your assigned properties...
+          </span>
+        </div>
+      ) : filteredStays.length === 0 ? (
+        /* Empty State */
         <div className="admin-card" style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>
-          {partnerStays.length === 0
+          {properties.length === 0
             ? "No homestays or hotels assigned to your host account yet. Lama Bhai Main Admin controls property assignments."
             : "No properties match your search criteria."}
         </div>
       ) : (
+        /* Property Cards Grid */
         <div className="partner-property-grid">
           {filteredStays.map((stay) => {
-            const isAvailable = stay.availability === "available";
+            const stayId = stay._id || stay.id;
+            const isAvailable =
+              stay.availability === "available" ||
+              (stay.availability !== "unavailable" && stay.active !== false);
+
             const rawCover = stay.image || (stay.gallery?.[0]?.src || stay.gallery?.[0]?.dataUrl) || null;
             const coverImg = typeof rawCover === "object" && rawCover !== null
               ? (rawCover.dataUrl || rawCover.src || "")
               : rawCover;
 
+            const locationDisplay =
+              typeof stay.location === "object" && stay.location !== null
+                ? (stay.location.town ? `${stay.location.town}, ${stay.location.district}` : stay.location.district || "Sikkim")
+                : (stay.location || "Sikkim");
+
+            const contactPhone =
+              typeof stay.contactDetails === "object" && stay.contactDetails !== null
+                ? stay.contactDetails.phone || ""
+                : (stay.contactDetails || "");
+
+            // Rooms populated directly by backend from MongoDB
+            const stayRooms = Array.isArray(stay.rooms) ? stay.rooms : [];
+            const availRooms = stayRooms.filter((r) => r.availability === "available" || (r.active !== false && !r.availability));
+
             return (
-              <div key={stay.id} className="partner-property-card">
+              <div key={stayId} className="partner-property-card">
                 {/* Photo / Cover */}
                 <div className="partner-property-cover">
                   {coverImg ? (
@@ -241,7 +413,7 @@ export default function PartnerProperties() {
                         {stay.name}
                       </h3>
                       <span className="partner-property-location">
-                        <MapPin size={13} /> {stay.location}
+                        <MapPin size={13} /> {locationDisplay}
                       </span>
                     </div>
 
@@ -273,14 +445,14 @@ export default function PartnerProperties() {
                         {stay.price ? (parseAndFormatPrice(stay.price)?.display || `₹${stay.price}`) : "On Request"}
                       </span>
                     </div>
-                    {stay.contactDetails && (
+                    {contactPhone && (
                       <a
-                        href={`tel:${stay.contactDetails}`}
+                        href={`tel:${contactPhone}`}
                         className="partner-property-contact-chip"
                         title="Property contact number"
                       >
                         <Phone size={13} weight="bold" />
-                        <span>{stay.contactDetails}</span>
+                        <span>{contactPhone}</span>
                       </a>
                     )}
                   </div>
@@ -310,74 +482,67 @@ export default function PartnerProperties() {
                     </div>
                   )}
 
-                  {/* Room Inventory Preview */}
-                  {(() => {
-                    const stayRooms = getAllRoomsByPropertyId(stay.id);
-                    const availRooms = stayRooms.filter((r) => r.availability === "available");
-                    return (
-                      <div className="partner-property-rooms-preview">
-                        <div className="partner-property-rooms-preview__header">
-                          <span className="partner-property-rooms-preview__title">
-                            <Bed size={15} weight="duotone" color="var(--color-peach-deep)" />
-                            Rooms ({stayRooms.length})
-                          </span>
-                          <span
-                            className={`partner-property-rooms-preview__status ${
-                              availRooms.length > 0 ? "is-available" : "is-blocked"
-                            }`}
-                          >
-                            {availRooms.length} of {stayRooms.length} Available
-                          </span>
-                        </div>
+                  {/* Room Inventory Preview (Backend populated from MongoDB) */}
+                  <div className="partner-property-rooms-preview">
+                    <div className="partner-property-rooms-preview__header">
+                      <span className="partner-property-rooms-preview__title">
+                        <Bed size={15} weight="duotone" color="var(--color-peach-deep)" />
+                        Rooms ({stayRooms.length})
+                      </span>
+                      <span
+                        className={`partner-property-rooms-preview__status ${
+                          availRooms.length > 0 ? "is-available" : "is-blocked"
+                        }`}
+                      >
+                        {availRooms.length} of {stayRooms.length} Available
+                      </span>
+                    </div>
 
-                        {stayRooms.length > 0 ? (
-                          <div className="partner-property-rooms-preview__list">
-                            {stayRooms.slice(0, 3).map((r, rIdx) => (
-                              <div key={r.id} className="partner-property-room-item">
-                                <div className="partner-property-room-item__info">
-                                  <span className="partner-property-room-item__num">#{rIdx + 1}</span>
-                                  <span className="partner-property-room-item__name">{r.name}</span>
-                                  <span className="partner-property-room-item__type">· {r.type}</span>
-                                </div>
-                                <span
-                                  className={`partner-property-room-item__badge ${
-                                    r.availability === "available" ? "is-open" : "is-blocked"
-                                  }`}
-                                >
-                                  {r.availability === "available" ? "Open" : "Blocked"}
-                                </span>
+                    {stayRooms.length > 0 ? (
+                      <div className="partner-property-rooms-preview__list">
+                        {stayRooms.slice(0, 3).map((r, rIdx) => {
+                          const rId = r._id || r.id;
+                          const rAvail = r.availability === "available" || (r.active !== false && !r.availability);
+                          return (
+                            <div key={rId} className="partner-property-room-item">
+                              <div className="partner-property-room-item__info">
+                                <span className="partner-property-room-item__num">#{rIdx + 1}</span>
+                                <span className="partner-property-room-item__name">{r.name}</span>
+                                <span className="partner-property-room-item__type">· {r.type}</span>
                               </div>
-                            ))}
-                            {stayRooms.length > 3 && (
-                              <div className="partner-property-rooms-preview__more">
-                                +{stayRooms.length - 3} more
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="partner-property-rooms-preview__empty">
-                            No individual rooms added yet.
+                              <span
+                                className={`partner-property-room-item__badge ${
+                                  rAvail ? "is-open" : "is-blocked"
+                                }`}
+                              >
+                                {rAvail ? "Open" : "Blocked"}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {stayRooms.length > 3 && (
+                          <div className="partner-property-rooms-preview__more">
+                            +{stayRooms.length - 3} more
                           </div>
                         )}
                       </div>
-                    );
-                  })()}
+                    ) : (
+                      <div className="partner-property-rooms-preview__empty">
+                        No individual rooms added yet.
+                      </div>
+                    )}
+                  </div>
 
                   {/* Structured 2x2 Action Buttons */}
                   <div className="partner-property-actions-grid">
-                    {(() => {
-                      const stayRooms = getAllRoomsByPropertyId(stay.id);
-                      return (
-                        <button
-                          type="button"
-                          className="partner-card-btn partner-card-btn--primary"
-                          onClick={() => setRoomModalStay(stay)}
-                          title="Manage multiple rooms, pricing, photos, and availability"
-                        >
-                          <Bed size={15} weight="bold" /> Manage Rooms ({stayRooms.length})
-                        </button>
-                      );
-                    })()}
+                    <button
+                      type="button"
+                      className="partner-card-btn partner-card-btn--primary"
+                      onClick={() => setRoomModalStay(stay)}
+                      title="Manage multiple rooms, pricing, photos, and availability"
+                    >
+                      <Bed size={15} weight="bold" /> Manage Rooms ({stayRooms.length})
+                    </button>
 
                     <button
                       type="button"
@@ -398,7 +563,7 @@ export default function PartnerProperties() {
                     </button>
 
                     <Link
-                      to={`/stays/${stay.id}`}
+                      to={`/stays/${stay.slug || stayId}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="partner-card-btn partner-card-btn--secondary"
@@ -437,6 +602,26 @@ export default function PartnerProperties() {
 
             <form onSubmit={handleSaveStay}>
               <div className="admin-modal-body" style={{ maxHeight: "70vh", overflowY: "auto" }}>
+                {formError && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      background: "#fee2e2",
+                      border: "1px solid #fecaca",
+                      color: "#991b1b",
+                      padding: "8px 12px",
+                      borderRadius: "var(--radius-sm)",
+                      marginBottom: "12px",
+                      fontSize: "0.84rem",
+                    }}
+                  >
+                    <WarningCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{formError}</span>
+                  </div>
+                )}
+
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                   <div>
                     <label className="admin-label">Property Name *</label>
@@ -460,6 +645,8 @@ export default function PartnerProperties() {
                       <option value="Hotel">Hotel</option>
                       <option value="Guest House">Guest House</option>
                       <option value="Resort">Resort</option>
+                      <option value="Lodge">Lodge</option>
+                      <option value="Cottage">Cottage</option>
                     </select>
                   </div>
                 </div>
@@ -578,11 +765,12 @@ export default function PartnerProperties() {
                   type="button"
                   className="admin-btn admin-btn--secondary"
                   onClick={() => setEditingStay(null)}
+                  disabled={saving}
                 >
                   Cancel
                 </button>
-                <button type="submit" className="admin-btn admin-btn--primary">
-                  Save Changes
+                <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>
@@ -595,28 +783,27 @@ export default function PartnerProperties() {
         <PhotoManagerModal
           entity={photoModalStay}
           entityType="Stay"
-          idKey="id"
-          repo={staysStore}
+          idKey="_id"
           onClose={() => setPhotoModalStay(null)}
           onSaveSuccess={() => {
             setPhotoModalStay(null);
-            refreshAll();
+            loadProperties();
           }}
         />
       )}
 
-      {/* Property Rooms Manager Modal (Strictly Scoped to Partner's Assigned Properties) */}
+      {/* Property Rooms Manager Modal */}
       {roomModalStay && (
         <PropertyRoomsManagerModal
           property={roomModalStay}
-          allProperties={partnerStays}
+          allProperties={properties}
           onSelectProperty={(stay) => setRoomModalStay(stay)}
           onClose={() => {
             setRoomModalStay(null);
             if (searchParams.get("manageRooms")) {
               setSearchParams({});
             }
-            refreshAll();
+            loadProperties();
           }}
         />
       )}

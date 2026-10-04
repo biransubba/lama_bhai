@@ -121,6 +121,12 @@ const propertySchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    availability: {
+      type: String,
+      enum: ['available', 'unavailable'],
+      default: 'available',
+      index: true,
+    },
     featured: {
       type: Boolean,
       default: false,

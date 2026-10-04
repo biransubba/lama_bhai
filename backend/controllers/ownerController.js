@@ -183,7 +183,12 @@ exports.updateProperty = async (req, res, next) => {
       'amenities',
       'location',
       'contactDetails',
+      'availability',
+      'active',
     ];
+
+    const contentFields = ['name', 'type', 'description', 'image', 'gallery', 'location'];
+    const hasContentChanges = contentFields.some((f) => req.body[f] !== undefined);
 
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
@@ -191,8 +196,12 @@ exports.updateProperty = async (req, res, next) => {
       }
     });
 
-    // If an ordinary owner updates a previously approved property, re-flag as pending for moderation
-    if (req.user.role !== 'admin' && property.status === 'approved') {
+    if (req.body.availability !== undefined) {
+      property.active = req.body.availability === 'available';
+    }
+
+    // If an ordinary owner updates major listing content on a previously approved property, re-flag for moderation
+    if (req.user.role !== 'admin' && property.status === 'approved' && hasContentChanges) {
       property.status = 'pending';
     }
 

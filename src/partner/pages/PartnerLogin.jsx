@@ -288,6 +288,24 @@ export default function PartnerLogin() {
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <button
                 type="button"
+                onClick={() => quickFill("norbu_52704@lama.test", "password123")}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  background: "#ffffff",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "4px",
+                  padding: "5px 8px",
+                  fontSize: "0.75rem",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <span><strong>Approved Host (3 Stays):</strong> norbu_52704@lama.test</span>
+                <span style={{ color: "var(--color-forest)", fontWeight: 600 }}>Fill &rarr;</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => quickFill("mw_owner_82977@lama.test", "password123")}
                 style={{
                   display: "flex",
@@ -301,7 +319,7 @@ export default function PartnerLogin() {
                   textAlign: "left",
                 }}
               >
-                <span><strong>Approved Host:</strong> mw_owner_82977@lama.test</span>
+                <span><strong>Approved Host (0 Stays):</strong> mw_owner_82977@lama.test</span>
                 <span style={{ color: "var(--color-forest)", fontWeight: 600 }}>Fill &rarr;</span>
               </button>
               <button
