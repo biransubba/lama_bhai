@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -13,8 +13,6 @@ import {
   Bed,
   Users,
 } from "phosphor-react";
-import { getStayById, getRoomsByPropertyId, getRoomById } from "../data/staysStore.js";
-import { useStayPhotos } from "../hooks/useStayPhotos.js";
 import StaySlideshow from "../components/StaySlideshow.jsx";
 import RoomCard from "../components/RoomCard.jsx";
 import RoomDetailsView from "../components/RoomDetailsView.jsx";
@@ -23,6 +21,7 @@ import Lightbox from "../components/Lightbox.jsx";
 import { parseAndFormatPrice } from "../utils/priceFormatter.js";
 import { getActiveOffersFor } from "../data/offersStore.js";
 import OfferBadge from "../components/OfferBadge.jsx";
+import { api } from "../utils/api.js";
 import "./StayDetails.css";
 
 export default function StayDetails() {
@@ -30,39 +29,219 @@ export default function StayDetails() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const [stay, setStay] = useState(() => getStayById(id));
-  const [rooms, setRooms] = useState(() => (id ? getRoomsByPropertyId(id) : []));
+  const [stay, setStay] = useState(null);
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [roomNotFound, setRoomNotFound] = useState(false);
+
   const [showForm, setShowForm] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [roomLightbox, setRoomLightbox] = useState(null);
+
+  const fetchPropertyData = useCallback(async () => {
+    if (!id) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setNotFound(false);
+      setRoomNotFound(false);
+
+      const res = await api.properties.getBySlug(id);
+      if (!res || !res.success || !res.data) {
+        setNotFound(true);
+        setStay(null);
+        setRooms([]);
+        return;
+      }
+
+      const p = res.data;
+
+      // Ensure property is approved and active for public viewing
+      if (p.status !== "approved" || p.active === false) {
+        setNotFound(true);
+        setStay(null);
+        setRooms([]);
+        return;
+      }
+
+      const coverUrl =
+        p.images?.cover ||
+        (Array.isArray(p.images?.gallery) && (p.images.gallery[0]?.url || p.images.gallery[0])) ||
+        "";
+      const galleryUrls = Array.isArray(p.images?.gallery)
+        ? p.images.gallery.map((g) => (typeof g === "string" ? g : g?.url)).filter(Boolean)
+        : [];
+      const locationTown = p.location?.town || p.location?.district || "Sikkim";
+
+      let priceStr = "";
+      if (p.pricing?.displayPrice) {
+        priceStr = p.pricing.displayPrice;
+      } else if (p.pricing?.basePrice) {
+        priceStr = `₹${p.pricing.basePrice.toLocaleString("en-IN")}/night`;
+      } else if (p.price) {
+        priceStr = String(p.price);
+      }
+
+      const normalizedProperty = {
+        id: p._id,
+        _id: p._id,
+        slug: p.slug,
+        partnerId: p.owner?._id || p.owner,
+        name: p.name || p.title,
+        type: p.type || "Homestay",
+        location: locationTown,
+        district: p.location?.district || "",
+        description: p.description || "",
+        price: priceStr,
+        rating: p.rating || 0,
+        numReviews: p.numReviews || 0,
+        image: coverUrl,
+        gallery: galleryUrls,
+        amenities: p.amenities || [],
+        availability: p.availability || "available",
+        active: p.active !== false,
+        offers: p.offers || [],
+      };
+
+      // Extract populated active rooms
+      let parsedRooms = [];
+      const rawRooms = Array.isArray(p.rooms) ? p.rooms : [];
+      if (rawRooms.length > 0) {
+        parsedRooms = rawRooms
+          .filter((r) => r && r.active !== false)
+          .map((r) => {
+            let rPriceStr = "";
+            if (typeof r.price === "number") {
+              rPriceStr = `₹${r.price.toLocaleString("en-IN")}/night`;
+            } else if (r.price) {
+              rPriceStr = String(r.price);
+            }
+            const rCover =
+              r.image ||
+              (Array.isArray(r.gallery) && (r.gallery[0]?.url || r.gallery[0])) ||
+              "";
+            const rGallery = Array.isArray(r.gallery)
+              ? r.gallery.map((g) => (typeof g === "string" ? g : g?.url || g?.src || g)).filter(Boolean)
+              : [];
+
+            return {
+              id: r._id,
+              _id: r._id,
+              propertyId: p._id,
+              name: r.name,
+              type: r.type || "Standard Room",
+              description: r.description || "",
+              capacity: r.capacity || 2,
+              bedConfiguration: r.bedConfiguration || "",
+              price: rPriceStr,
+              amenities: r.amenities || [],
+              image: rCover,
+              gallery: rGallery,
+              availability: r.availability === "maintenance" ? "unavailable" : (r.availability || "available"),
+              active: r.active !== false,
+            };
+          });
+      } else {
+        // Fallback: fetch room inventory endpoint if rooms array was unpopulated
+        try {
+          const roomsRes = await api.properties.getRooms(p._id);
+          if (roomsRes && roomsRes.success && Array.isArray(roomsRes.data)) {
+            parsedRooms = roomsRes.data
+              .filter((r) => r && r.active !== false)
+              .map((r) => {
+                let rPriceStr = "";
+                if (typeof r.price === "number") {
+                  rPriceStr = `₹${r.price.toLocaleString("en-IN")}/night`;
+                } else if (r.price) {
+                  rPriceStr = String(r.price);
+                }
+                const rCover =
+                  r.image ||
+                  (Array.isArray(r.gallery) && (r.gallery[0]?.url || r.gallery[0])) ||
+                  "";
+                const rGallery = Array.isArray(r.gallery)
+                  ? r.gallery.map((g) => (typeof g === "string" ? g : g?.url || g?.src || g)).filter(Boolean)
+                  : [];
+
+                return {
+                  id: r._id,
+                  _id: r._id,
+                  propertyId: p._id,
+                  name: r.name,
+                  type: r.type || "Standard Room",
+                  description: r.description || "",
+                  capacity: r.capacity || 2,
+                  bedConfiguration: r.bedConfiguration || "",
+                  price: rPriceStr,
+                  amenities: r.amenities || [],
+                  image: rCover,
+                  gallery: rGallery,
+                  availability: r.availability === "maintenance" ? "unavailable" : (r.availability || "available"),
+                  active: r.active !== false,
+                };
+              });
+          }
+        } catch (fetchRoomsErr) {
+          console.warn("[StayDetails] Could not fetch property rooms:", fetchRoomsErr);
+        }
+      }
+
+      setStay(normalizedProperty);
+      setRooms(parsedRooms);
+
+      // Validate routeRoomId ownership if path /stays/:id/rooms/:roomId is accessed
+      if (routeRoomId) {
+        const found = parsedRooms.find((r) => r.id === routeRoomId || r._id === routeRoomId);
+        if (!found) {
+          setRoomNotFound(true);
+        }
+      }
+    } catch (err) {
+      console.error("[StayDetails] Error fetching property details:", err);
+      setNotFound(true);
+      setStay(null);
+      setRooms([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [id, routeRoomId]);
+
+  useEffect(() => {
+    fetchPropertyData();
+
+    function onAdminChange() {
+      fetchPropertyData();
+    }
+    window.addEventListener("admin-storage-changed", onAdminChange);
+    window.addEventListener("storage", onAdminChange);
+
+    return () => {
+      window.removeEventListener("admin-storage-changed", onAdminChange);
+      window.removeEventListener("storage", onAdminChange);
+    };
+  }, [fetchPropertyData]);
 
   // Active room determination from URL path (:roomId) or query param (?room=...)
   const queryRoomId = searchParams.get("room");
   const targetRoomId = routeRoomId || queryRoomId || null;
   const activeRoom = targetRoomId
-    ? (rooms.find((r) => r.id === targetRoomId) || getRoomById(targetRoomId))
+    ? rooms.find((r) => r.id === targetRoomId || r._id === targetRoomId) || null
     : null;
 
-  const { photos, coverImage } = useStayPhotos(id, stay);
+  if (loading) {
+    return (
+      <main className="stay-detail" style={{ minHeight: "50vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ fontSize: "1.1rem", color: "var(--color-navy)", fontWeight: 600 }}>Loading stay details...</p>
+      </main>
+    );
+  }
 
-  useEffect(() => {
-    function refreshStay() {
-      const refreshedStay = getStayById(id);
-      setStay(refreshedStay);
-      if (id) {
-        setRooms(getRoomsByPropertyId(id));
-      }
-    }
-    refreshStay();
-    window.addEventListener("admin-storage-changed", refreshStay);
-    window.addEventListener("storage", refreshStay);
-    return () => {
-      window.removeEventListener("admin-storage-changed", refreshStay);
-      window.removeEventListener("storage", refreshStay);
-    };
-  }, [id]);
-
-  if (!stay) {
+  if (notFound || !stay) {
     return (
       <main className="stay-detail stay-detail--notfound">
         <h1>Stay not found</h1>
@@ -72,6 +251,21 @@ export default function StayDetails() {
             <ArrowLeft size={14} weight="bold" />
           </span>
           <span className="stay-detail__back-text">Back to Homestays &amp; Stays</span>
+        </Link>
+      </main>
+    );
+  }
+
+  if (roomNotFound) {
+    return (
+      <main className="stay-detail stay-detail--notfound">
+        <h1>Room not found</h1>
+        <p>This room does not exist or does not belong to this property.</p>
+        <Link to={`/stays/${stay.id}`} className="stay-detail__back" aria-label="Back to Property Details">
+          <span className="stay-detail__back-arrow" aria-hidden="true">
+            <ArrowLeft size={14} weight="bold" />
+          </span>
+          <span className="stay-detail__back-text">Back to {stay.name}</span>
         </Link>
       </main>
     );
@@ -209,10 +403,10 @@ export default function StayDetails() {
             <span className="stay-detail__back-text">Back to all Homestays &amp; Stays</span>
           </Link>
 
-          {/* 1. PROPERTY COVER IMAGE & SLIDESHOW GALLERY (Represents Accommodation Itself) */}
+          {/* 1. PROPERTY COVER IMAGE & SLIDESHOW GALLERY */}
           <StaySlideshow
-            photos={photos}
-            coverImage={coverImage}
+            photos={stay.gallery}
+            coverImage={stay.image}
             stayName={displayName}
             location={stay.location}
           />

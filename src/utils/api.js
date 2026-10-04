@@ -116,6 +116,10 @@ export const api = {
       apiRequest(`/properties/${propertyIdOrSlug}/rooms`, {
         method: 'GET',
       }),
+    getRoomById: (propertyIdOrSlug, roomId) =>
+      apiRequest(`/properties/${propertyIdOrSlug}/rooms/${roomId}`, {
+        method: 'GET',
+      }),
   },
 
   // 3. Owner / Partner Portal APIs

@@ -217,10 +217,10 @@ exports.getPropertyRooms = async (req, res, next) => {
     const propertyQuery = isObjectId ? { $or: [{ _id: id }, { slug: id }] } : { slug: id };
 
     const property = await Property.findOne(propertyQuery).select('_id name status active');
-    if (!property) {
+    if (!property || property.status !== 'approved' || !property.active) {
       return res.status(404).json({
         success: false,
-        error: 'Property not found',
+        error: 'Property not found or not approved',
       });
     }
 
@@ -242,3 +242,53 @@ exports.getPropertyRooms = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc    Get single room for a specific property (validates room belongs to property)
+ * @route   GET /api/properties/:id/rooms/:roomId
+ * @access  Public
+ */
+exports.getPropertyRoomById = async (req, res, next) => {
+  try {
+    const { id, roomId } = req.params;
+
+    const isObjectId = mongoose.Types.ObjectId.isValid(id);
+    const propertyQuery = isObjectId ? { $or: [{ _id: id }, { slug: id }] } : { slug: id };
+
+    const property = await Property.findOne(propertyQuery).select('_id name status active');
+    if (!property || property.status !== 'approved' || !property.active) {
+      return res.status(404).json({
+        success: false,
+        error: 'Property not found or not approved',
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Room not found',
+      });
+    }
+
+    const room = await Room.findOne({
+      _id: roomId,
+      property: property._id,
+      active: true,
+    });
+
+    if (!room) {
+      return res.status(404).json({
+        success: false,
+        error: 'Room not found for this property',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: room,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

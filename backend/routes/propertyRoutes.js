@@ -19,4 +19,8 @@ router.get('/:slug', optionalAuth, propertyController.getPropertyBySlug);
 // Room inventory for property
 router.get('/:id/rooms', propertyController.getPropertyRooms);
 
+// Single room under property (ownership verified)
+router.get('/:id/rooms/:roomId', propertyController.getPropertyRoomById);
+
 module.exports = router;
+
