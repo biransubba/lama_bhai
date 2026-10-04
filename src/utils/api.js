@@ -285,24 +285,37 @@ export const api = {
 
   // 8. Media Upload APIs
   upload: {
-    image: (file, folder = 'general') => {
+    image: (file, folder = 'lama-bhaila/properties', extraFields = {}) => {
       const formData = new FormData();
       formData.append('image', file);
       if (folder) formData.append('folder', folder);
+      if (extraFields && typeof extraFields === 'object') {
+        if (extraFields.propertyId) formData.append('propertyId', extraFields.propertyId);
+        if (extraFields.roomId) formData.append('roomId', extraFields.roomId);
+      }
       return apiRequest('/upload/image', {
         method: 'POST',
         body: formData,
       });
     },
-    gallery: (files, category = 'General') => {
+    gallery: (files, category = 'Gallery', extraFields = {}) => {
       const formData = new FormData();
       Array.from(files).forEach((f) => formData.append('images', f));
       if (category) formData.append('category', category);
+      if (extraFields && typeof extraFields === 'object') {
+        if (extraFields.propertyId) formData.append('propertyId', extraFields.propertyId);
+        if (extraFields.roomId) formData.append('roomId', extraFields.roomId);
+      }
       return apiRequest('/upload/gallery', {
         method: 'POST',
         body: formData,
       });
     },
+    deleteImage: (data) =>
+      apiRequest('/upload/image', {
+        method: 'DELETE',
+        body: JSON.stringify(data),
+      }),
   },
 };
 

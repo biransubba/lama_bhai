@@ -511,8 +511,9 @@ export default function PropertyRoomsManagerModal({
         <PhotoManagerModal
           entity={photoManagingRoom}
           entityType="Room"
-          idKey="id"
-          repo={roomsStore}
+          idKey={backendMode ? "_id" : "id"}
+          backendMode={backendMode}
+          repo={backendMode ? null : roomsStore}
           onClose={() => setPhotoManagingRoom(null)}
           onSaveSuccess={() => {
             refreshRooms();

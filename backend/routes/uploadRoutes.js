@@ -7,5 +7,6 @@ const { uploadSingle, uploadMultiple } = require('../middleware/uploadMiddleware
 // Upload endpoints require authentication to prevent spam & resource exhaustion
 router.post('/image', protect, uploadSingle, uploadController.uploadImage);
 router.post('/gallery', protect, uploadMultiple, uploadController.uploadGallery);
+router.delete('/image', protect, uploadController.deleteImage);
 
 module.exports = router;

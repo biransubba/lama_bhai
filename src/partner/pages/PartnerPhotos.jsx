@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   ImageSquare,
@@ -10,42 +10,50 @@ import {
   CheckCircle,
   MapPin,
   Bed,
+  WarningCircle,
 } from "phosphor-react";
 import { usePartnerAuth } from "../context/PartnerAuthContext.jsx";
-import { staysStore, getAllRoomsByPropertyId, roomsStore } from "../../data/staysStore.js";
-import { getAllPropertyPhotoSummaries } from "../../utils/stayPhotoStorage.js";
+import { api } from "../../utils/api.js";
 import PhotoManagerModal from "../../admin/components/PhotoManagerModal.jsx";
 
 export default function PartnerPhotos() {
-  const { currentPartner, partnerStays, refreshAll } = usePartnerAuth();
+  const { currentPartner } = usePartnerAuth();
+
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState("");
 
   const [activeStayForPhotos, setActiveStayForPhotos] = useState(null);
   const [activeRoomForPhotos, setActiveRoomForPhotos] = useState(null);
-  const [photoSummaries, setPhotoSummaries] = useState({});
 
-  async function loadSummaries() {
+  // Load properties scoped strictly to authenticated owner from backend MongoDB
+  const loadProperties = useCallback(async () => {
     try {
-      const map = await getAllPropertyPhotoSummaries();
-      setPhotoSummaries(map || {});
+      setPageError("");
+      const res = await api.owner.getProperties();
+      if (res && res.success) {
+        setProperties(res.data || []);
+      } else {
+        setProperties([]);
+      }
     } catch (err) {
-      console.warn("Could not load local photo summaries:", err);
+      if (err.status === 401) {
+        setPageError("Authentication required. Please log in to view your properties.");
+      } else if (err.status === 403) {
+        setPageError("Access denied: Partner/Owner account required to manage photos.");
+      } else if (err.status >= 500) {
+        setPageError("A server error occurred while retrieving properties. Please try again later.");
+      } else {
+        setPageError(err.message || "Failed to load properties from backend.");
+      }
+    } finally {
+      setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    loadSummaries();
-
-    function onPhotoUpdate() {
-      loadSummaries();
-      refreshAll();
-    }
-    window.addEventListener("photos-changed", onPhotoUpdate);
-    window.addEventListener("homestay-photos-changed", onPhotoUpdate);
-    return () => {
-      window.removeEventListener("photos-changed", onPhotoUpdate);
-      window.removeEventListener("homestay-photos-changed", onPhotoUpdate);
-    };
-  }, []);
+    loadProperties();
+  }, [loadProperties]);
 
   return (
     <div>
@@ -53,13 +61,33 @@ export default function PartnerPhotos() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px", marginBottom: "var(--space-md)" }}>
         <div>
           <h1 className="admin-page-title" style={{ margin: 0 }}>
-            Photo Gallery &amp; Cover Images ({partnerStays.length})
+            Photo Gallery &amp; Cover Images ({properties.length})
           </h1>
           <p className="admin-page-note" style={{ margin: "4px 0 0" }}>
             Upload high-resolution pictures, set your primary cover image, and arrange room gallery display order for <strong>{currentPartner?.name}</strong>'s properties.
           </p>
         </div>
       </div>
+
+      {pageError && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "#fee2e2",
+            border: "1px solid #fecaca",
+            color: "#991b1b",
+            padding: "10px 14px",
+            borderRadius: "var(--radius-sm)",
+            marginBottom: "var(--space-md)",
+            fontSize: "0.85rem",
+          }}
+        >
+          <WarningCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{pageError}</span>
+        </div>
+      )}
 
       {/* Guide Banner */}
       <div
@@ -79,8 +107,26 @@ export default function PartnerPhotos() {
         <strong>Photo Management Guide:</strong> Click <em>Manage Photos</em> on any stay below to open the Photo Studio. You can upload multiple room views, click the <strong>Star</strong> icon to set any photo as the primary cover, and use the <strong>&larr; / &rarr;</strong> arrows to adjust gallery display order.
       </div>
 
-      {/* Property Cards for Photos */}
-      {partnerStays.length === 0 ? (
+      {/* Loading state */}
+      {loading ? (
+        <div style={{ padding: "60px 20px", textAlign: "center" }}>
+          <div
+            style={{
+              width: "36px",
+              height: "36px",
+              border: "3px solid var(--color-peach-light)",
+              borderTopColor: "var(--color-peach-deep)",
+              borderRadius: "50%",
+              animation: "partner-spin 0.8s linear infinite",
+              margin: "0 auto 12px",
+            }}
+          />
+          <style>{`@keyframes partner-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          <span style={{ color: "var(--color-navy)", fontSize: "0.95rem", fontWeight: 600 }}>
+            Loading properties from database...
+          </span>
+        </div>
+      ) : properties.length === 0 ? (
         <div className="admin-card" style={{ padding: "40px", textAlign: "center", color: "var(--color-text-muted)" }}>
           <ImageSquare size={36} color="var(--color-peach-deep)" style={{ marginBottom: "8px" }} />
           <h3 style={{ margin: "0 0 6px", color: "var(--color-navy)" }}>No Assigned Properties</h3>
@@ -90,17 +136,24 @@ export default function PartnerPhotos() {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {partnerStays.map((stay) => {
-            const summary = photoSummaries[stay.id];
-            const rawCover = summary?.coverUrl || stay.image || (stay.gallery?.[0]?.src || stay.gallery?.[0]?.dataUrl) || null;
+          {properties.map((stay) => {
+            const stayId = stay._id || stay.id;
+            const rawCover = stay.image || (stay.gallery?.[0]?.src || stay.gallery?.[0]?.dataUrl) || null;
             const coverUrl = typeof rawCover === "object" && rawCover !== null
               ? (rawCover.dataUrl || rawCover.src || "")
               : rawCover;
-            const totalCount = summary?.totalCount || (Array.isArray(stay.gallery) ? stay.gallery.length : 0);
+            const totalCount = Array.isArray(stay.gallery) ? stay.gallery.length : 0;
+
+            const locationDisplay =
+              typeof stay.location === "object" && stay.location !== null
+                ? (stay.location.town ? `${stay.location.town}, ${stay.location.district}` : stay.location.district || "Sikkim")
+                : (stay.location || "Sikkim");
+
+            const stayRooms = Array.isArray(stay.rooms) ? stay.rooms.filter((r) => r.active !== false) : [];
 
             return (
               <div
-                key={stay.id}
+                key={stayId}
                 style={{
                   background: "var(--color-surface)",
                   border: "1px solid var(--color-border)",
@@ -191,7 +244,7 @@ export default function PartnerPhotos() {
                   </div>
 
                   <div style={{ fontSize: "0.82rem", color: "var(--color-text-muted)", display: "flex", alignItems: "center", gap: "4px", marginBottom: "8px" }}>
-                    <MapPin size={13} color="var(--color-forest)" /> {stay.location}, Sikkim
+                    <MapPin size={13} color="var(--color-forest)" /> {locationDisplay}
                   </div>
 
                   <div style={{ fontSize: "0.84rem", color: "var(--color-navy)", fontWeight: 600 }}>
@@ -220,7 +273,7 @@ export default function PartnerPhotos() {
                   </button>
 
                   <Link
-                    to={`/stays/${stay.id}`}
+                    to={`/stays/${stay.slug || stayId}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="admin-btn admin-btn--secondary"
@@ -231,61 +284,58 @@ export default function PartnerPhotos() {
                 </div>
 
                 {/* Room Photo Galleries Breakdown */}
-                {(() => {
-                  const stayRooms = getAllRoomsByPropertyId(stay.id);
-                  if (stayRooms.length === 0) return null;
-                  return (
-                    <div style={{ width: "100%", marginTop: "14px", paddingTop: "14px", borderTop: "1px dashed var(--color-border)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
-                        <strong style={{ fontSize: "0.82rem", color: "var(--color-navy)", display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                          <Bed size={14} weight="duotone" color="var(--color-peach-deep)" />
-                          Room-Specific Galleries ({stayRooms.length} {stayRooms.length === 1 ? "room unit" : "room units"})
-                        </strong>
-                        <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)" }}>
-                          Room photos are stored separately from the main property gallery.
-                        </span>
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
-                        {stayRooms.map((room) => {
-                          const roomPhotoCount = (room.image ? 1 : 0) + (Array.isArray(room.gallery) ? room.gallery.length : 0);
-                          return (
-                            <div
-                              key={room.id}
-                              style={{
-                                background: "#f8fafc",
-                                border: "1px solid var(--color-border)",
-                                borderRadius: "var(--radius-sm)",
-                                padding: "8px 12px",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                gap: "8px",
-                              }}
-                            >
-                              <div style={{ minWidth: 0, overflow: "hidden" }}>
-                                <strong style={{ display: "block", fontSize: "0.82rem", color: "var(--color-navy)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                  {room.name}
-                                </strong>
-                                <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)" }}>
-                                  {roomPhotoCount} {roomPhotoCount === 1 ? "Photo" : "Photos"} · {room.type}
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                className="admin-btn admin-btn--secondary"
-                                onClick={() => setActiveRoomForPhotos(room)}
-                                style={{ fontSize: "0.75rem", padding: "4px 8px", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: "4px" }}
-                                title="Manage room-specific photos"
-                              >
-                                <Camera size={12} /> Photos
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
+                {stayRooms.length > 0 && (
+                  <div style={{ width: "100%", marginTop: "14px", paddingTop: "14px", borderTop: "1px dashed var(--color-border)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", flexWrap: "wrap", gap: "6px" }}>
+                      <strong style={{ fontSize: "0.82rem", color: "var(--color-navy)", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                        <Bed size={14} weight="duotone" color="var(--color-peach-deep)" />
+                        Room-Specific Galleries ({stayRooms.length} {stayRooms.length === 1 ? "room unit" : "room units"})
+                      </strong>
+                      <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)" }}>
+                        Room photos are stored separately from the main property gallery in MongoDB.
+                      </span>
                     </div>
-                  );
-                })()}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "10px" }}>
+                      {stayRooms.map((room) => {
+                        const roomId = room._id || room.id;
+                        const roomPhotoCount = (room.image ? 1 : 0) + (Array.isArray(room.gallery) ? room.gallery.length : 0);
+                        return (
+                          <div
+                            key={roomId}
+                            style={{
+                              background: "#f8fafc",
+                              border: "1px solid var(--color-border)",
+                              borderRadius: "var(--radius-sm)",
+                              padding: "8px 12px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              gap: "8px",
+                            }}
+                          >
+                            <div style={{ minWidth: 0, overflow: "hidden" }}>
+                              <strong style={{ display: "block", fontSize: "0.82rem", color: "var(--color-navy)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {room.name}
+                              </strong>
+                              <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)" }}>
+                                {roomPhotoCount} {roomPhotoCount === 1 ? "Photo" : "Photos"} · {room.type}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn--secondary"
+                              onClick={() => setActiveRoomForPhotos(room)}
+                              style={{ fontSize: "0.75rem", padding: "4px 8px", flexShrink: 0, display: "inline-flex", alignItems: "center", gap: "4px" }}
+                              title="Manage room-specific photos"
+                            >
+                              <Camera size={12} /> Photos
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -297,13 +347,12 @@ export default function PartnerPhotos() {
         <PhotoManagerModal
           entity={activeStayForPhotos}
           entityType="Stay"
-          idKey="id"
-          repo={staysStore}
+          idKey="_id"
+          backendMode={true}
           onClose={() => setActiveStayForPhotos(null)}
           onSaveSuccess={() => {
             setActiveStayForPhotos(null);
-            loadSummaries();
-            refreshAll();
+            loadProperties();
           }}
         />
       )}
@@ -313,12 +362,12 @@ export default function PartnerPhotos() {
         <PhotoManagerModal
           entity={activeRoomForPhotos}
           entityType="Room"
-          idKey="id"
-          repo={roomsStore}
+          idKey="_id"
+          backendMode={true}
           onClose={() => setActiveRoomForPhotos(null)}
           onSaveSuccess={() => {
             setActiveRoomForPhotos(null);
-            refreshAll();
+            loadProperties();
           }}
         />
       )}

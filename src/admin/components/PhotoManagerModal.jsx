@@ -19,6 +19,7 @@ import {
 } from "../../utils/stayPhotoStorage.js";
 import { compressImageFile } from "../../utils/mediaService.js";
 import { getDefaultDestinationPhotos } from "../../data/destinationImages.js";
+import { api } from "../../utils/api.js";
 import "./StayPhotoManager.css";
 
 export default function PhotoManagerModal({
@@ -26,6 +27,8 @@ export default function PhotoManagerModal({
   entityType = "Stay",
   idKey = "id",
   repo = null,
+  backendMode = false,
+  onSave = null,
   onClose,
   onSaveSuccess,
 }) {
@@ -54,13 +57,59 @@ export default function PhotoManagerModal({
   const coverInputRef = useRef(null);
   const galleryInputRef = useRef(null);
 
-  // Load photos from IndexedDB or seed fallback
+  // Load photos from MongoDB / Cloudinary in backendMode or fallback to IndexedDB
   useEffect(() => {
     let isMounted = true;
 
     async function fetchPhotos() {
       setLoading(true);
       try {
+        if (backendMode) {
+          // Direct from MongoDB entity (Property or Room)
+          const rawCover = entity.image || null;
+          const coverUrl =
+            typeof rawCover === "object" && rawCover !== null
+              ? (rawCover.dataUrl || rawCover.src || rawCover.url || "")
+              : rawCover;
+
+          let seedCover = null;
+          if (coverUrl) {
+            seedCover = {
+              id: `cover_${entityId}`,
+              propertyId: entityId,
+              dataUrl: coverUrl,
+              name: `${displayName} Cover Photo`,
+              isCover: true,
+              order: 0,
+              category: "Cover",
+            };
+          }
+
+          const gallerySource = Array.isArray(entity.gallery) ? entity.gallery : [];
+          const seedGallery = [];
+          gallerySource.forEach((g, idx) => {
+            const rawSrc = typeof g === "string" ? g : (g?.src || g?.dataUrl || g?.url);
+            if (!rawSrc) return;
+            seedGallery.push({
+              id: (typeof g === "object" && (g._id || g.id)) || `gal_${entityId}_${idx}`,
+              propertyId: entityId,
+              dataUrl: rawSrc,
+              publicId: typeof g === "object" ? g.publicId : undefined,
+              name: (typeof g === "object" && g.alt) || `${displayName} Photo ${idx + 1}`,
+              isCover: false,
+              order: seedGallery.length,
+              category: (typeof g === "object" && g.category) || (entityType === "Room" ? "Room" : "Gallery"),
+            });
+          });
+
+          if (!isMounted) return;
+          setCoverPhoto(seedCover);
+          setGalleryPhotos(seedGallery);
+          setInitialCover(seedCover);
+          setInitialGallery(seedGallery);
+          return;
+        }
+
         const localList = await getPhotosForProperty(entityId);
 
         if (!isMounted) return;
@@ -137,7 +186,7 @@ export default function PhotoManagerModal({
     return () => {
       isMounted = false;
     };
-  }, [entityId, displayName, entity.image, entity.gallery, entity.images]);
+  }, [entityId, displayName, entity.image, entity.gallery, entity.images, backendMode]);
 
   function markChanged() {
     setHasChanges(true);
@@ -155,6 +204,39 @@ export default function PhotoManagerModal({
     setErrorMessage(null);
 
     try {
+      const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+
+      if (backendMode) {
+        const uploadRes = await api.upload.image(
+          file,
+          entityType === "Room" ? "lama-bhaila/rooms" : "lama-bhaila/properties",
+          {
+            propertyId: entityType === "Stay" ? entityId : undefined,
+            roomId: entityType === "Room" ? entityId : undefined,
+          }
+        );
+
+        if (!uploadRes || !uploadRes.data?.url) {
+          throw new Error(uploadRes?.error || "Failed to upload image to backend CDN.");
+        }
+
+        const newCover = {
+          id: uploadRes.data.publicId || `photo_cover_${entityId}_${Date.now()}`,
+          propertyId: entityId,
+          dataUrl: uploadRes.data.url,
+          publicId: uploadRes.data.publicId,
+          name: cleanName,
+          isCover: true,
+          order: 0,
+          category: "Cover",
+          createdAt: new Date().toISOString(),
+        };
+
+        setCoverPhoto(newCover);
+        markChanged();
+        return;
+      }
+
       const compressed = await compressImageFile(file, {
         maxWidth: 1600,
         maxHeight: 1200,
@@ -162,7 +244,6 @@ export default function PhotoManagerModal({
       });
       const dataUrl = typeof compressed === "object" && compressed?.dataUrl ? compressed.dataUrl : String(compressed || "");
 
-      const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
       const newCover = {
         id: `photo_cover_${entityId}_${Date.now()}`,
         propertyId: entityId,
@@ -178,7 +259,15 @@ export default function PhotoManagerModal({
       markChanged();
     } catch (err) {
       console.error("Error compressing cover photo:", err);
-      setErrorMessage(err.message || "Failed to process cover photo. Please try another image.");
+      if (err.status === 413) {
+        setErrorMessage("File too large. Maximum file size allowed is 5MB.");
+      } else if (err.status === 403) {
+        setErrorMessage("Access denied: You do not have permission to upload photos for this listing.");
+      } else if (err.status === 400) {
+        setErrorMessage(err.message || "Invalid image format. Supported formats: JPG, PNG, WEBP, AVIF.");
+      } else {
+        setErrorMessage(err.message || "Failed to process cover photo. Please try another image.");
+      }
     } finally {
       setUploadingCover(false);
       if (coverInputRef.current) coverInputRef.current.value = "";
@@ -201,6 +290,52 @@ export default function PhotoManagerModal({
     setErrorMessage(null);
 
     try {
+      if (backendMode) {
+        const uploadRes = await api.upload.gallery(
+          files,
+          entityType === "Room" ? "Room" : "Gallery",
+          {
+            propertyId: entityType === "Stay" ? entityId : undefined,
+            roomId: entityType === "Room" ? entityId : undefined,
+          }
+        );
+
+        if (!uploadRes || !Array.isArray(uploadRes.data)) {
+          throw new Error(uploadRes?.error || "Failed to upload gallery photos to backend CDN.");
+        }
+
+        const processedList = uploadRes.data.map((item, idx) => ({
+          id: item.publicId || item.id || `photo_gal_${entityId}_${Date.now()}_${idx}`,
+          propertyId: entityId,
+          dataUrl: item.src,
+          publicId: item.publicId,
+          name: item.alt || `Photo ${galleryPhotos.length + idx + 1}`,
+          isCover: false,
+          order: galleryPhotos.length + idx,
+          category: item.category || (entityType === "Room" ? "Room" : "Gallery"),
+          createdAt: new Date().toISOString(),
+        }));
+
+        let remainingGallery = [...processedList];
+        if (!coverPhoto && remainingGallery.length > 0) {
+          const autoCover = {
+            ...remainingGallery[0],
+            isCover: true,
+            category: "Cover",
+          };
+          setCoverPhoto(autoCover);
+          remainingGallery = remainingGallery.slice(1);
+        }
+
+        setGalleryPhotos((prev) => {
+          const combined = [...prev, ...remainingGallery];
+          return combined.map((p, idx) => ({ ...p, order: idx }));
+        });
+
+        markChanged();
+        return;
+      }
+
       const processedList = [];
 
       for (let i = 0; i < files.length; i++) {
@@ -254,7 +389,15 @@ export default function PhotoManagerModal({
       markChanged();
     } catch (err) {
       console.error("Error processing gallery photos:", err);
-      setErrorMessage(err.message || "Failed to process one or more images.");
+      if (err.status === 413) {
+        setErrorMessage("One or more files exceed the 5MB size limit.");
+      } else if (err.status === 403) {
+        setErrorMessage("Access denied: You do not have permission to upload photos for this listing.");
+      } else if (err.status === 400) {
+        setErrorMessage(err.message || "Invalid image format. Supported formats: JPG, PNG, WEBP, AVIF.");
+      } else {
+        setErrorMessage(err.message || "Failed to process one or more images.");
+      }
     } finally {
       setUploadingGallery(false);
       if (galleryInputRef.current) galleryInputRef.current.value = "";
@@ -314,14 +457,41 @@ export default function PhotoManagerModal({
     if (!file || !file.type.startsWith("image/")) return;
 
     try {
+      const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
+
+      if (backendMode) {
+        const uploadRes = await api.upload.image(
+          file,
+          entityType === "Room" ? "lama-bhaila/rooms" : "lama-bhaila/properties",
+          {
+            propertyId: entityType === "Stay" ? entityId : undefined,
+            roomId: entityType === "Room" ? entityId : undefined,
+          }
+        );
+        if (!uploadRes || !uploadRes.data?.url) {
+          throw new Error(uploadRes?.error || "Failed to upload replacement photo.");
+        }
+
+        setGalleryPhotos((prev) => {
+          const next = [...prev];
+          next[index] = {
+            ...next[index],
+            dataUrl: uploadRes.data.url,
+            publicId: uploadRes.data.publicId,
+            name: cleanName,
+          };
+          return next;
+        });
+        markChanged();
+        return;
+      }
+
       const compressed = await compressImageFile(file, {
         maxWidth: 1600,
         maxHeight: 1200,
         quality: 0.82,
       });
       const dataUrl = typeof compressed === "object" && compressed?.dataUrl ? compressed.dataUrl : String(compressed || "");
-
-      const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
 
       setGalleryPhotos((prev) => {
         const next = [...prev];
@@ -335,7 +505,11 @@ export default function PhotoManagerModal({
       markChanged();
     } catch (err) {
       console.error("Failed to replace photo:", err);
-      setErrorMessage("Failed to replace photo.");
+      if (err.status === 413) {
+        setErrorMessage("File exceeds 5MB size limit.");
+      } else {
+        setErrorMessage(err.message || "Failed to replace photo.");
+      }
     }
   }
 
@@ -384,6 +558,40 @@ export default function PhotoManagerModal({
     }
 
     try {
+      if (backendMode) {
+        const coverUrl = coverPhoto
+          ? unwrapUrl(coverPhoto.dataUrl)
+          : (galleryPhotos[0] ? unwrapUrl(galleryPhotos[0].dataUrl) : "");
+
+        const galleryItems = galleryPhotos.map((p, idx) => ({
+          src: unwrapUrl(p.dataUrl || p.src),
+          alt: p.name || `${displayName} Photo ${idx + 1}`,
+          category: p.category || (entityType === "Room" ? "Room" : "Property"),
+        }));
+
+        if (onSave) {
+          await onSave({ image: coverUrl, gallery: galleryItems });
+        } else if (entityType === "Stay") {
+          await api.owner.updateProperty(entityId, {
+            image: coverUrl,
+            gallery: galleryItems,
+          });
+        } else if (entityType === "Room") {
+          await api.owner.updateRoom(entityId, {
+            image: coverUrl,
+            gallery: galleryItems,
+          });
+        }
+
+        setInitialCover(coverPhoto ? { ...coverPhoto } : null);
+        setInitialGallery([...galleryPhotos]);
+        setHasChanges(false);
+        setSaveSuccess(true);
+
+        if (onSaveSuccess) onSaveSuccess();
+        return;
+      }
+
       const allToSave = [];
       if (coverPhoto) {
         allToSave.push({
@@ -446,7 +654,15 @@ export default function PhotoManagerModal({
       if (onSaveSuccess) onSaveSuccess();
     } catch (err) {
       console.error("Save photos error:", err);
-      setErrorMessage("Failed to save photos. Storage quota may have been exceeded.");
+      if (err.status === 403) {
+        setErrorMessage("Access denied: You do not have permission to modify photos for this listing.");
+      } else if (err.status === 404) {
+        setErrorMessage("Listing not found on server.");
+      } else if (err.status === 400) {
+        setErrorMessage(err.message || "Invalid photo data. Please review your photos.");
+      } else {
+        setErrorMessage(err.message || "Failed to save photos to server.");
+      }
     } finally {
       setSaving(false);
     }
@@ -497,7 +713,15 @@ export default function PhotoManagerModal({
         <div className="photo-manager__notice">
           <Info size={16} weight="bold" />
           <p>
-            <strong>Local Browser Storage:</strong> Photos are saved in your browser's IndexedDB. When backend cloud storage is connected, these will sync across devices.
+            {backendMode ? (
+              <>
+                <strong>Cloud Storage &amp; Database Connected:</strong> Photos are uploaded to Cloudinary CDN and synchronized with your MongoDB listing.
+              </>
+            ) : (
+              <>
+                <strong>Local Browser Storage:</strong> Photos are saved in your browser's IndexedDB. When backend cloud storage is connected, these will sync across devices.
+              </>
+            )}
           </p>
         </div>
 

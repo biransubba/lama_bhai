@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const { isConfigured, uploadBuffer } = require('../config/cloudinary');
+const mongoose = require('mongoose');
+const Property = require('../models/Property');
+const Room = require('../models/Room');
+const { isConfigured, uploadBuffer, deleteAsset } = require('../config/cloudinary');
 
 // Ensure local uploads directory exists for fallback mode
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -31,7 +34,52 @@ const saveLocally = (file, req) => {
 };
 
 /**
- * @desc    Upload single image (avatar, property cover, destination image)
+ * Validates that the authenticated user owns the target property or room before allowing upload
+ */
+const verifyEntityOwnership = async (req, propertyId, roomId) => {
+  if (propertyId) {
+    if (!mongoose.Types.ObjectId.isValid(propertyId)) {
+      return { status: 400, error: 'Invalid property ID format' };
+    }
+    const property = await Property.findById(propertyId);
+    if (!property) {
+      return { status: 404, error: 'Property not found' };
+    }
+    if (property.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return {
+        status: 403,
+        error: 'Access denied: You do not have permission to upload photos for this property',
+      };
+    }
+    return { property };
+  }
+
+  if (roomId) {
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return { status: 400, error: 'Invalid room ID format' };
+    }
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return { status: 404, error: 'Room not found' };
+    }
+    const property = await Property.findById(room.property);
+    if (!property) {
+      return { status: 404, error: 'Parent property for room not found' };
+    }
+    if (property.owner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return {
+        status: 403,
+        error: 'Access denied: You do not have permission to upload photos for this room',
+      };
+    }
+    return { room, property };
+  }
+
+  return {};
+};
+
+/**
+ * @desc    Upload single image (avatar, property cover, room cover)
  * @route   POST /api/upload/image
  * @access  Private (Authenticated users)
  */
@@ -42,6 +90,14 @@ exports.uploadImage = async (req, res, next) => {
         success: false,
         error: 'Please attach an image file with key "image"',
       });
+    }
+
+    const propertyId = req.body.propertyId || req.query.propertyId;
+    const roomId = req.body.roomId || req.query.roomId;
+
+    const check = await verifyEntityOwnership(req, propertyId, roomId);
+    if (check.error) {
+      return res.status(check.status).json({ success: false, error: check.error });
     }
 
     const folder = req.body.folder || 'lama-bhaila/properties';
@@ -88,6 +144,14 @@ exports.uploadGallery = async (req, res, next) => {
       });
     }
 
+    const propertyId = req.body.propertyId || req.query.propertyId;
+    const roomId = req.body.roomId || req.query.roomId;
+
+    const check = await verifyEntityOwnership(req, propertyId, roomId);
+    if (check.error) {
+      return res.status(check.status).json({ success: false, error: check.error });
+    }
+
     const folder = req.body.folder || 'lama-bhaila/galleries';
 
     // 1. Process files in parallel
@@ -121,6 +185,80 @@ exports.uploadGallery = async (req, res, next) => {
       message: `Successfully uploaded ${uploadedImages.length} gallery photos`,
       count: uploadedImages.length,
       data: uploadedImages,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete photo from property / room and Cloudinary / local storage
+ * @route   DELETE /api/upload/image
+ * @access  Private (Authenticated users)
+ */
+exports.deleteImage = async (req, res, next) => {
+  try {
+    const { url, publicId, propertyId, roomId } = req.body;
+
+    if (!url && !publicId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please provide either the photo "url" or "publicId" to delete',
+      });
+    }
+
+    const check = await verifyEntityOwnership(req, propertyId, roomId);
+    if (check.error) {
+      return res.status(check.status).json({ success: false, error: check.error });
+    }
+
+    // If propertyId provided, remove the photo from Property.gallery and Property.image if matching
+    if (check.property && propertyId) {
+      const property = check.property;
+      if (property.image === url) {
+        property.image = property.gallery?.[0]?.src || '';
+      }
+      if (Array.isArray(property.gallery)) {
+        property.gallery = property.gallery.filter(
+          (g) => g.src !== url && (!publicId || g.publicId !== publicId)
+        );
+      }
+      await property.save();
+    }
+
+    // If roomId provided, remove from Room.gallery / Room.image
+    if (check.room && roomId) {
+      const room = check.room;
+      if (room.image === url) {
+        room.image = room.gallery?.[0]?.src || '';
+      }
+      if (Array.isArray(room.gallery)) {
+        room.gallery = room.gallery.filter(
+          (g) => g.src !== url && (!publicId || g.publicId !== publicId)
+        );
+      }
+      await room.save();
+    }
+
+    // Cloudinary deletion if configured and publicId provided
+    if (publicId) {
+      await deleteAsset(publicId);
+    }
+
+    // Local disk deletion if applicable
+    if (url && url.includes('/uploads/')) {
+      const filename = path.basename(url);
+      const localFilePath = path.join(uploadsDir, filename);
+      if (fs.existsSync(localFilePath)) {
+        try {
+          fs.unlinkSync(localFilePath);
+        } catch (_) {}
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Photo deleted successfully',
     });
   } catch (error) {
     next(error);

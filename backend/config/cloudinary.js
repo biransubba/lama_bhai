@@ -43,8 +43,24 @@ const uploadBuffer = (buffer, options = {}) => {
   });
 };
 
+/**
+ * Delete an asset from Cloudinary by public ID if configured
+ * @param {string} publicId - Cloudinary asset public ID
+ * @returns {Promise<Object|null>}
+ */
+const deleteAsset = async (publicId) => {
+  if (!isConfigured || !publicId) return null;
+  try {
+    return await cloudinary.uploader.destroy(publicId);
+  } catch (err) {
+    console.warn('Cloudinary deleteAsset error:', err.message);
+    return null;
+  }
+};
+
 module.exports = {
   cloudinary,
   isConfigured,
   uploadBuffer,
+  deleteAsset,
 };

@@ -33,7 +33,34 @@ const upload = multer({
   fileFilter,
 });
 
+/**
+ * Higher-order middleware to capture Multer errors and format 413 / 400 responses
+ */
+const handleMulterUpload = (multerAction) => (req, res, next) => {
+  multerAction(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          success: false,
+          error: 'File too large. Maximum file size allowed is 5MB.',
+        });
+      }
+      if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+        return res.status(400).json({
+          success: false,
+          error: `Unexpected upload field: ${err.field}. Please use the expected file input key.`,
+        });
+      }
+      return res.status(err.statusCode || 400).json({
+        success: false,
+        error: err.message || 'File upload validation failed',
+      });
+    }
+    next();
+  });
+};
+
 module.exports = {
-  uploadSingle: upload.single('image'),
-  uploadMultiple: upload.array('images', 10), // Max 10 images at once
+  uploadSingle: handleMulterUpload(upload.single('image')),
+  uploadMultiple: handleMulterUpload(upload.array('images', 10)), // Max 10 images at once
 };

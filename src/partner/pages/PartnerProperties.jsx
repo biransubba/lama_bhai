@@ -784,6 +784,7 @@ export default function PartnerProperties() {
           entity={photoModalStay}
           entityType="Stay"
           idKey="_id"
+          backendMode={true}
           onClose={() => setPhotoModalStay(null)}
           onSaveSuccess={() => {
             setPhotoModalStay(null);
