@@ -156,15 +156,30 @@ export const api = {
       apiRequest(`/owner/rooms/${roomId}`, {
         method: 'DELETE',
       }),
-    getBookings: () =>
-      apiRequest('/owner/bookings', {
+    getBookings: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return apiRequest(`/owner/bookings${query ? `?${query}` : ''}`, {
         method: 'GET',
-      }),
-    updateBookingStatus: (id, status, notes) =>
-      apiRequest(`/owner/bookings/${id}/status`, {
+      });
+    },
+    updateBookingStatus: (id, statusOrData, maybeNotes) => {
+      let payload;
+      if (typeof statusOrData === 'object' && statusOrData !== null) {
+        payload = statusOrData;
+      } else {
+        payload = { status: statusOrData };
+        if (typeof maybeNotes === 'string') {
+          payload.notes = maybeNotes;
+          payload.reason = maybeNotes;
+        } else if (typeof maybeNotes === 'object' && maybeNotes !== null) {
+          Object.assign(payload, maybeNotes);
+        }
+      }
+      return apiRequest(`/owner/bookings/${id}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status, notes }),
-      }),
+        body: JSON.stringify(payload),
+      });
+    },
   },
 
   // 4. Admin Management APIs

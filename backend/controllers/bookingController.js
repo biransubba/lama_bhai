@@ -298,7 +298,7 @@ exports.updateBookingStatusByOwner = async (req, res, next) => {
     }
 
     // Ownership check: must be the assigned host or admin
-    if (booking.partner && booking.partner.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    if ((!booking.partner || booking.partner.toString() !== req.user._id.toString()) && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         error: 'Access denied: You do not have permission to manage this booking',
