@@ -14,6 +14,7 @@ import {
   WarningCircle,
 } from "phosphor-react";
 import { addRoom, updateRoom } from "../../data/staysStore.js";
+import { api } from "../../utils/api.js";
 import { compressImageFile } from "../../utils/mediaService.js";
 import { ROOM_TYPES } from "../../data/schema.js";
 import "./RoomFormModal.css";
@@ -38,8 +39,15 @@ export default function RoomFormModal({
   room = null,
   onSave,
   onClose,
+  backendMode = false,
 }) {
-  if (!property || !property.id) {
+  // MongoDB properties/rooms use `_id`; legacy local-store records use `id`.
+  const propId = property ? property._id || property.id : null;
+  const propLocation =
+    property && property.location && typeof property.location === "object"
+      ? [property.location.town, property.location.district].filter(Boolean).join(", ")
+      : property?.location;
+  if (!propId) {
     return (
       <div className="room-modal-overlay">
         <div className="room-modal">
@@ -56,7 +64,8 @@ export default function RoomFormModal({
     );
   }
 
-  const isEditing = Boolean(room && room.id);
+  const roomId = room ? room._id || room.id : null;
+  const isEditing = Boolean(roomId);
 
   // Form states
   const [name, setName] = useState(room?.name || "");
@@ -115,6 +124,12 @@ export default function RoomFormModal({
 
     setUploadingImage(true);
     try {
+      if (backendMode) {
+        // Upload to the backend media API and store only the returned URL in MongoDB
+        const res = await api.upload.image(file, "lama-bhaila/rooms");
+        setCoverImage(res?.data?.url || "");
+        return;
+      }
       const compressed = await compressImageFile(file, {
         maxWidth: 1600,
         maxHeight: 1200,
@@ -142,22 +157,63 @@ export default function RoomFormModal({
     if (!type.trim()) {
       errs.type = "Room category/type is required.";
     }
-    if (!property.id) {
+    if (!propId) {
       errs.property = "Parent property association is missing.";
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
 
+  async function handleBackendSubmit() {
+    const numericPrice = Number(String(price).replace(/[^0-9.]/g, ""));
+    if (!numericPrice) {
+      setErrors({ property: "Please enter a valid nightly rate (numbers only)." });
+      return;
+    }
+    const payload = {
+      name: name.trim(),
+      type: type.trim(),
+      price: numericPrice,
+      capacity: capacity ? Number(capacity) : 2,
+      availability,
+      status: status === "draft" ? "draft" : "published",
+      description: description.trim(),
+      amenities: amenitiesList,
+      image: coverImage || "",
+    };
+
+    setSubmitting(true);
+    try {
+      const res = isEditing
+        ? await api.owner.updateRoom(roomId, payload)
+        : await api.owner.addRoom(propId, payload);
+      if (onSave) onSave(res?.data);
+    } catch (err) {
+      let msg = "Failed to save room. Please try again.";
+      if (err.status === 401) msg = "Your session has expired. Please log in again.";
+      else if (err.status === 403) msg = "Access denied: you do not have permission to manage this room.";
+      else if (err.status === 404) msg = "Property or room not found.";
+      else if (err.status === 400) msg = err.message || "Invalid room details.";
+      setErrors({ property: msg });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function handleSubmit(e) {
     if (e) e.preventDefault();
     if (!validate()) return;
+
+    if (backendMode) {
+      handleBackendSubmit();
+      return;
+    }
 
     setSubmitting(true);
 
     const isDraft = status === "draft";
     const payload = {
-      propertyId: property.id, // Strictly locked to parent property ID
+      propertyId: propId, // Strictly locked to parent property ID
       name: name.trim(),
       type: type.trim(),
       price: price ? String(price).trim() : null,
@@ -219,11 +275,11 @@ export default function RoomFormModal({
             <div className="room-modal__parent-meta">
               <span className="room-modal__parent-badge">Locked Parent Property</span>
               <span className="room-modal__parent-type">{property.type || "Accommodation"}</span>
-              <span className="room-modal__parent-loc">{property.location}, Sikkim</span>
+              <span className="room-modal__parent-loc">{propLocation}, Sikkim</span>
             </div>
             <strong className="room-modal__parent-name">{property.name}</strong>
             <span className="room-modal__parent-id">
-              Property ID: <code>{property.id}</code> (Automatically bound — no manual entry required)
+              Property ID: <code>{propId}</code> (Automatically bound — no manual entry required)
             </span>
           </div>
         </div>

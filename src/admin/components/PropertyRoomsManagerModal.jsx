@@ -25,6 +25,7 @@ import {
   roomsStore,
 } from "../../data/staysStore.js";
 import { parseAndFormatPrice } from "../../utils/priceFormatter.js";
+import { api } from "../../utils/api.js";
 import PhotoManagerModal from "./PhotoManagerModal.jsx";
 import RoomFormModal from "./RoomFormModal.jsx";
 import "./PropertyRoomsManagerModal.css";
@@ -34,24 +35,57 @@ export default function PropertyRoomsManagerModal({
   allProperties = [],
   onSelectProperty,
   onClose,
+  backendMode = false,
 }) {
-  if (!property || !property.id) return null;
+  // Backend (MongoDB) properties use `_id`; legacy local-store properties use `id`.
+  const propId = property ? property._id || property.id : null;
+  if (!property || !propId) return null;
 
-  // Local rooms state
-  const [rooms, setRooms] = useState(() => getAllRoomsByPropertyId(property.id));
+  const roomKey = (r) => r._id || r.id;
+  const propLocation =
+    property.location && typeof property.location === "object"
+      ? [property.location.town, property.location.district].filter(Boolean).join(", ")
+      : property.location;
+
+  // Rooms state (MongoDB when backendMode, local store otherwise)
+  const [rooms, setRooms] = useState(() => (backendMode ? [] : getAllRoomsByPropertyId(propId)));
+  const [loadingRooms, setLoadingRooms] = useState(backendMode);
+  const [roomError, setRoomError] = useState("");
   const [editingRoom, setEditingRoom] = useState(null);
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [photoManagingRoom, setPhotoManagingRoom] = useState(null);
 
-  function refreshRooms() {
-    setRooms(getAllRoomsByPropertyId(property.id));
+  function describeError(err) {
+    if (err?.status === 401) return "Your session has expired. Please log in again.";
+    if (err?.status === 403) return "Access denied: you do not have permission to manage this room.";
+    if (err?.status === 404) return "Room or property not found. It may have been removed.";
+    if (err?.status === 400) return err.message || "Invalid room details.";
+    return "Something went wrong while contacting the server. Please try again.";
+  }
+
+  async function refreshRooms() {
+    if (!backendMode) {
+      setRooms(getAllRoomsByPropertyId(propId));
+      return;
+    }
+    try {
+      const res = await api.owner.getPropertyById(propId);
+      const list = Array.isArray(res?.data?.rooms) ? res.data.rooms : [];
+      // Deleted rooms are soft-deleted (active=false) by the backend
+      setRooms(list.filter((r) => r.active !== false));
+    } catch (err) {
+      setRoomError(describeError(err));
+    } finally {
+      setLoadingRooms(false);
+    }
   }
 
   useEffect(() => {
     refreshRooms();
-  }, [property.id]);
+  }, [propId]);
 
   useEffect(() => {
+    if (backendMode) return undefined;
     function onStorage() {
       refreshRooms();
     }
@@ -61,43 +95,72 @@ export default function PropertyRoomsManagerModal({
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("admin-storage-changed", onStorage);
     };
-  }, [property.id]);
+  }, [propId]);
 
-  // 1-Click Availability Toggle
-  function handleToggleAvailability(room) {
-    const nextAvailability = room.availability === "available" ? "unavailable" : "available";
-    updateRoom(room.id, { availability: nextAvailability });
-    refreshRooms();
+  function notifyLocalChange() {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("admin-storage-changed", { detail: { repo: "admin_rooms" } }));
       window.dispatchEvent(new CustomEvent("storage"));
     }
+  }
+
+  // 1-Click Availability Toggle
+  async function handleToggleAvailability(room) {
+    const nextAvailability = room.availability === "available" ? "unavailable" : "available";
+    if (backendMode) {
+      try {
+        setRoomError("");
+        await api.owner.updateRoom(roomKey(room), { availability: nextAvailability });
+        await refreshRooms();
+      } catch (err) {
+        setRoomError(describeError(err));
+      }
+      return;
+    }
+    updateRoom(room.id, { availability: nextAvailability });
+    refreshRooms();
+    notifyLocalChange();
   }
 
   // 1-Click Status / Active Toggle
-  function handleToggleStatus(room) {
+  async function handleToggleStatus(room) {
     const isDraft = room.status === "draft" || room.active === false;
     const nextStatus = isDraft ? "published" : "draft";
     const nextActive = isDraft;
+    if (backendMode) {
+      try {
+        setRoomError("");
+        // Draft is expressed via status only; active=false is reserved for deleted rooms
+        await api.owner.updateRoom(roomKey(room), { status: nextStatus });
+        await refreshRooms();
+      } catch (err) {
+        setRoomError(describeError(err));
+      }
+      return;
+    }
     updateRoom(room.id, { status: nextStatus, active: nextActive });
     refreshRooms();
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("admin-storage-changed", { detail: { repo: "admin_rooms" } }));
-      window.dispatchEvent(new CustomEvent("storage"));
-    }
+    notifyLocalChange();
   }
 
   // Delete Room
-  function handleDeleteRoom(room) {
+  async function handleDeleteRoom(room) {
     const confirmMsg = `Are you sure you want to remove "${room.name}" from ${property.name}?\n\nThis will remove the room and its booking options from the property.`;
     if (!window.confirm(confirmMsg)) return;
 
+    if (backendMode) {
+      try {
+        setRoomError("");
+        await api.owner.deleteRoom(roomKey(room));
+        await refreshRooms();
+      } catch (err) {
+        setRoomError(describeError(err));
+      }
+      return;
+    }
     deleteRoom(room.id);
     refreshRooms();
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new CustomEvent("admin-storage-changed", { detail: { repo: "admin_rooms" } }));
-      window.dispatchEvent(new CustomEvent("storage"));
-    }
+    notifyLocalChange();
   }
 
   const availableCount = rooms.filter((r) => r.availability === "available").length;
@@ -141,18 +204,18 @@ export default function PropertyRoomsManagerModal({
               <div className="prop-rooms__parent-badges">
                 <span className="prop-rooms__badge prop-rooms__badge--parent">Parent Property</span>
                 <span className="prop-rooms__badge prop-rooms__badge--type">{property.type || "Accommodation"}</span>
-                {property.location && (
+                {propLocation && (
                   <span className="prop-rooms__badge prop-rooms__badge--loc">
-                    <MapPinLine size={12} weight="bold" /> {property.location}, Sikkim
+                    <MapPinLine size={12} weight="bold" /> {propLocation}, Sikkim
                   </span>
                 )}
                 <span className="prop-rooms__badge prop-rooms__badge--id">
-                  ID: <code>{property.id}</code>
+                  ID: <code>{propId}</code>
                 </span>
               </div>
               <h2 className="prop-rooms__parent-name">{property.name}</h2>
               <p className="prop-rooms__parent-note">
-                Managing all room units under this property. Adding rooms here automatically assigns <code>propertyId: "{property.id}"</code> without manual entry.
+                Managing all room units under this property. Adding rooms here automatically assigns <code>propertyId: "{propId}"</code> without manual entry.
               </p>
             </div>
           </div>
@@ -163,15 +226,15 @@ export default function PropertyRoomsManagerModal({
               <label htmlFor="prop-switcher-select">Switch Property:</label>
               <select
                 id="prop-switcher-select"
-                value={property.id}
+                value={propId}
                 onChange={(e) => {
-                  const targetStay = allProperties.find((p) => p.id === e.target.value);
+                  const targetStay = allProperties.find((p) => (p._id || p.id) === e.target.value);
                   if (targetStay && onSelectProperty) onSelectProperty(targetStay);
                 }}
               >
                 {allProperties.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} ({p.location || "Sikkim"})
+                  <option key={p._id || p.id} value={p._id || p.id}>
+                    {p.name} ({(p.location && typeof p.location === "object" ? p.location.town : p.location) || "Sikkim"})
                   </option>
                 ))}
               </select>
@@ -209,9 +272,34 @@ export default function PropertyRoomsManagerModal({
           </button>
         </div>
 
+        {roomError && (
+          <div
+            role="alert"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              background: "#fee2e2",
+              border: "1px solid #fecaca",
+              color: "#991b1b",
+              padding: "8px 14px",
+              margin: "0 0 8px",
+              borderRadius: "6px",
+              fontSize: "0.84rem",
+            }}
+          >
+            <WarningCircle size={16} style={{ flexShrink: 0 }} />
+            <span>{roomError}</span>
+          </div>
+        )}
+
         {/* ROOMS LIST CONTAINER */}
         <div className="prop-rooms__content">
-          {rooms.length === 0 ? (
+          {loadingRooms ? (
+            <div className="prop-rooms__empty">
+              <p className="prop-rooms__empty-text">Loading rooms...</p>
+            </div>
+          ) : rooms.length === 0 ? (
             <div className="prop-rooms__empty">
               <div className="prop-rooms__empty-icon">
                 <Bed size={40} weight="duotone" />
@@ -242,7 +330,7 @@ export default function PropertyRoomsManagerModal({
                   : [];
 
                 return (
-                  <article key={room.id} className="prop-room-card">
+                  <article key={roomKey(room)} className="prop-room-card">
                     {/* Index Badge */}
                     <div className="prop-room-card__index-pill">
                       #{idx + 1}
@@ -264,7 +352,7 @@ export default function PropertyRoomsManagerModal({
                     <div className="prop-room-card__body">
                       <div className="prop-room-card__meta-top">
                         <h3 className="prop-room-card__name">{room.name}</h3>
-                        <span className="prop-room-card__id">ID: <code>{room.id}</code></span>
+                        <span className="prop-room-card__id">ID: <code>{roomKey(room)}</code></span>
                       </div>
 
                       <div className="prop-room-card__chips">
@@ -296,7 +384,7 @@ export default function PropertyRoomsManagerModal({
                       {amenitiesArr.length > 0 && (
                         <div className="prop-room-card__amenities">
                           {amenitiesArr.slice(0, 4).map((a, aIdx) => (
-                            <span key={`${room.id}_am_${aIdx}`} className="prop-room-card__amenity-tag">
+                            <span key={`${roomKey(room)}_am_${aIdx}`} className="prop-room-card__amenity-tag">
                               ✓ {a}
                             </span>
                           ))}
@@ -340,7 +428,7 @@ export default function PropertyRoomsManagerModal({
                       {/* Action Buttons */}
                       <div className="prop-room-card__btns">
                         <a
-                          href={`/stays/${property.id}/rooms/${room.id}`}
+                          href={`/stays/${property.slug || propId}/rooms/${roomKey(room)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="prop-room-btn prop-room-btn--view"
@@ -362,9 +450,10 @@ export default function PropertyRoomsManagerModal({
 
                         <button
                           type="button"
-                          onClick={() => setPhotoManagingRoom(room)}
+                          onClick={() => !backendMode && setPhotoManagingRoom(room)}
+                          disabled={backendMode}
                           className="prop-room-btn prop-room-btn--photos"
-                          title="Manage room-specific photos & gallery"
+                          title={backendMode ? "Room photo management is handled in the Photos section" : "Manage room-specific photos & gallery"}
                         >
                           <Camera size={14} weight="bold" />
                           <span>Photos ({photoCount})</span>
@@ -403,6 +492,7 @@ export default function PropertyRoomsManagerModal({
       {(isAddingRoom || editingRoom) && (
         <RoomFormModal
           property={property}
+          backendMode={backendMode}
           room={editingRoom}
           onSave={() => {
             refreshRooms();

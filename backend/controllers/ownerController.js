@@ -283,6 +283,7 @@ exports.addRoom = async (req, res, next) => {
       image,
       gallery,
       availability,
+      status,
     } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -322,6 +323,7 @@ exports.addRoom = async (req, res, next) => {
       image: image || '',
       gallery: Array.isArray(gallery) ? gallery : [],
       availability: availability || 'available',
+      status: status === 'draft' ? 'draft' : 'published',
       active: true,
     });
 
@@ -378,6 +380,7 @@ exports.updateRoom = async (req, res, next) => {
       'image',
       'gallery',
       'availability',
+      'status',
       'active',
     ];
 

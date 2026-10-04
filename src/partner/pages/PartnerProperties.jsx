@@ -349,7 +349,7 @@ export default function PartnerProperties() {
                 : (stay.contactDetails || "");
 
             // Rooms populated directly by backend from MongoDB
-            const stayRooms = Array.isArray(stay.rooms) ? stay.rooms : [];
+            const stayRooms = Array.isArray(stay.rooms) ? stay.rooms.filter((r) => r.active !== false) : [];
             const availRooms = stayRooms.filter((r) => r.availability === "available" || (r.active !== false && !r.availability));
 
             return (
@@ -796,6 +796,7 @@ export default function PartnerProperties() {
       {roomModalStay && (
         <PropertyRoomsManagerModal
           property={roomModalStay}
+          backendMode
           allProperties={properties}
           onSelectProperty={(stay) => setRoomModalStay(stay)}
           onClose={() => {
