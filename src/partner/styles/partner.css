@@ -1347,13 +1347,21 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.listing-card__status-badge--available {
+.listing-card__status-badge--available,
+.listing-card__status-badge--approved {
   background: rgba(240, 253, 244, 0.95);
   color: #166534;
   border: 1px solid #bbf7d0;
 }
 
-.listing-card__status-badge--unavailable {
+.listing-card__status-badge--pending {
+  background: rgba(255, 251, 235, 0.95);
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.listing-card__status-badge--unavailable,
+.listing-card__status-badge--rejected {
   background: rgba(254, 242, 242, 0.95);
   color: #991b1b;
   border: 1px solid #fecaca;
@@ -1513,7 +1521,6 @@
   background: #fef2f2;
   color: #b91c1c;
   border: 1px solid #fecaca;
-  flex: 0 0 auto;
 }
 
 .listing-btn--delete:hover {

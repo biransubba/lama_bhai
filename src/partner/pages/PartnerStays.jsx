@@ -134,9 +134,9 @@ export default function PartnerStays() {
             borderRadius: "var(--radius-sm)",
             textDecoration: "none",
           }}
-          title="Create a new property listing"
+          title="Create a new room listing"
         >
-          <Plus size={16} weight="bold" /> + Add Property / Listing
+          <Plus size={16} weight="bold" /> + Add Listing
         </Link>
       </div>
 

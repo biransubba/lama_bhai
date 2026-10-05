@@ -491,7 +491,7 @@ export default function PartnerLayout() {
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <WarningCircle size={18} weight="fill" color="#b45309" style={{ flexShrink: 0 }} />
               <span>
-                <strong>Host Profile Under Review:</strong> Your host account verification is in progress. You have full access to create and submit property listings below!
+                <strong>Host Profile Under Review:</strong> Your host account verification is in progress. You have full access to create and submit room listings below!
               </span>
             </div>
             <Link
@@ -499,7 +499,7 @@ export default function PartnerLayout() {
               className="admin-btn admin-btn--primary"
               style={{ fontSize: "0.8rem", padding: "6px 14px", textDecoration: "none" }}
             >
-              + Add Property
+              + Add Listing
             </Link>
           </div>
         )}

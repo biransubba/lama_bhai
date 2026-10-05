@@ -216,12 +216,12 @@ export default function PartnerDashboard() {
               gap: "4px",
               transition: "transform 0.15s ease",
             }}
-            title="Create a new property listing"
+            title="Create a new room listing"
           >
             <Plus size={24} color="var(--color-peach-deep)" weight="bold" />
-            <strong style={{ color: "var(--color-peach-deep)", fontSize: "0.95rem", marginTop: "4px" }}>+ Add Property / Listing</strong>
+            <strong style={{ color: "var(--color-peach-deep)", fontSize: "0.95rem", marginTop: "4px" }}>+ Add Listing</strong>
             <span style={{ fontSize: "0.78rem", color: "var(--color-text-muted)" }}>
-              Submit a new homestay or hotel listing
+              Create a new bookable room listing
             </span>
           </Link>
 
