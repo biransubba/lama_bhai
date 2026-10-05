@@ -146,6 +146,14 @@ export const api = {
       apiRequest(`/owner/properties/${id}`, {
         method: 'DELETE',
       }),
+    getRooms: () =>
+      apiRequest('/owner/rooms', {
+        method: 'GET',
+      }),
+    getRoomById: (roomId) =>
+      apiRequest(`/owner/rooms/${roomId}`, {
+        method: 'GET',
+      }),
     addRoom: (propertyId, data) =>
       apiRequest(`/owner/properties/${propertyId}/rooms`, {
         method: 'POST',
@@ -218,6 +226,41 @@ export const api = {
         }
       }
       return apiRequest(`/admin/properties/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify(body),
+      });
+    },
+    // Room Listings Moderation (TASK 12)
+    getListings: (params = {}) => {
+      let qs = '';
+      if (typeof params === 'string') {
+        qs = params ? `?status=${encodeURIComponent(params)}` : '';
+      } else if (typeof params === 'object' && params !== null) {
+        const query = new URLSearchParams();
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null && v !== '') {
+            query.append(k, v);
+          }
+        });
+        const qStr = query.toString();
+        qs = qStr ? `?${qStr}` : '';
+      }
+      return apiRequest(`/admin/rooms${qs}`, { method: 'GET' });
+    },
+    updateListingStatus: (id, statusOrData, maybeNotes) => {
+      let body;
+      if (typeof statusOrData === 'object' && statusOrData !== null) {
+        body = statusOrData;
+      } else {
+        body = { status: statusOrData };
+        if (typeof maybeNotes === 'string') {
+          body.rejectionReason = maybeNotes;
+          body.reviewerNotes = maybeNotes;
+        } else if (typeof maybeNotes === 'object' && maybeNotes !== null) {
+          Object.assign(body, maybeNotes);
+        }
+      }
+      return apiRequest(`/admin/rooms/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify(body),
       });

@@ -68,9 +68,9 @@ export default function PartnerDashboard() {
               textDecoration: "none",
             }}
             id="partner-dashboard-header-add-btn"
-            title="Create and submit a new property listing"
+            title="Create and publish a new room listing"
           >
-            <Plus size={16} weight="bold" /> + Add Property / Listing
+            <Plus size={16} weight="bold" /> + Add Listing
           </Link>
           <span
             style={{

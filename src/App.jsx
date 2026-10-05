@@ -133,6 +133,7 @@ export default function App() {
           <Route path="/partner" element={<PartnerLayout />}>
             <Route index element={<PartnerDashboard />} />
             <Route path="properties" element={<PartnerProperties />} />
+            <Route path="listings" element={<PartnerProperties />} />
             <Route path="stays" element={<Navigate to="/partner/properties" replace />} />
             <Route path="availability" element={<PartnerAvailability />} />
             <Route path="photos" element={<PartnerPhotos />} />

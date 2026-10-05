@@ -20,22 +20,44 @@ import { usePartnerAuth } from "../context/PartnerAuthContext.jsx";
 export default function PartnerProfile() {
   const { currentPartner, partnerStays, updatePartnerProfile, refreshAll } = usePartnerAuth();
 
-  const [agency, setAgency] = useState(currentPartner?.agency || "");
+  const [businessName, setBusinessName] = useState(
+    currentPartner?.partnerProfile?.businessName || currentPartner?.agency || ""
+  );
   const [phone, setPhone] = useState(currentPartner?.phone || "");
   const [email, setEmail] = useState(currentPartner?.email || "");
+  const [district, setDistrict] = useState(
+    currentPartner?.partnerProfile?.district || "South Sikkim"
+  );
+  const [town, setTown] = useState(
+    currentPartner?.partnerProfile?.town || currentPartner?.location || "Namchi"
+  );
+  const [address, setAddress] = useState(
+    currentPartner?.partnerProfile?.address || ""
+  );
+  const [pincode, setPincode] = useState(
+    currentPartner?.partnerProfile?.pincode || ""
+  );
   const [notes, setNotes] = useState(currentPartner?.notes || "");
   const [savedSuccess, setSavedSuccess] = useState(false);
 
   function handleSubmit(e) {
     e.preventDefault();
-    updatePartnerProfile({
-      agency: agency.trim(),
-      phone: phone.trim(),
-      email: email.trim(),
-      notes: notes.trim(),
-    });
+    if (updatePartnerProfile) {
+      updatePartnerProfile({
+        agency: businessName.trim(),
+        businessName: businessName.trim(),
+        phone: phone.trim(),
+        email: email.trim(),
+        district: district.trim(),
+        town: town.trim(),
+        address: address.trim(),
+        pincode: pincode.trim(),
+        location: `${town.trim()}, ${district.trim()}`,
+        notes: notes.trim(),
+      });
+    }
     setSavedSuccess(true);
-    refreshAll();
+    if (refreshAll) refreshAll();
     setTimeout(() => setSavedSuccess(false), 3500);
   }
 
@@ -45,16 +67,16 @@ export default function PartnerProfile() {
       <div className="partner-page-header">
         <div>
           <h1 className="partner-page-title">
-            Host Profile &amp; Contact Details
+            Partner Profile &amp; Business Details
           </h1>
           <p className="partner-page-subtitle">
-            Operational coordinator profile and verified host account details for <strong>{currentPartner?.name}</strong>.
+            Business location and contact information for <strong>{currentPartner?.name}</strong>.
           </p>
         </div>
 
         <div className="partner-page-header-actions">
           <span className="partner-status-pill partner-status-pill--approved">
-            <CheckCircle size={15} weight="fill" /> Approved Host Account
+            <CheckCircle size={15} weight="fill" /> Verified Partner Account
           </span>
         </div>
       </div>
@@ -68,9 +90,9 @@ export default function PartnerProfile() {
               <UserCircle size={22} weight="duotone" color="var(--color-peach-deep)" />
             </div>
             <div>
-              <h2 className="partner-card-title">Edit Contact Information</h2>
+              <h2 className="partner-card-title">Profile Information</h2>
               <p className="partner-card-subtitle">
-                Update your business phone, email, and host introduction seen on stay listings.
+                This business location serves as the default location for all your room listings.
               </p>
             </div>
           </div>
@@ -83,12 +105,12 @@ export default function PartnerProfile() {
           )}
 
           <form onSubmit={handleSubmit} className="partner-form">
-            {/* Host Name (Fixed) */}
+            {/* Host Full Name */}
             <div className="partner-form-group">
               <div className="partner-form-label-wrap">
-                <label className="partner-form-label">Host Full Name</label>
+                <label className="partner-form-label">Full Name</label>
                 <span className="partner-form-badge">
-                  <LockKey size={11} weight="bold" /> Managed by Main Admin
+                  <LockKey size={11} weight="bold" /> Registered Account Name
                 </span>
               </div>
               <input
@@ -97,34 +119,28 @@ export default function PartnerProfile() {
                 value={currentPartner?.name || ""}
                 disabled
               />
-              <span className="partner-form-help">
-                To request a name change or transfer ownership, please contact Lama Bhai Main Admin.
-              </span>
             </div>
 
-            {/* Homestay Agency / Network Name */}
+            {/* Business / Homestay Name */}
             <div className="partner-form-group">
               <label className="partner-form-label">
-                Homestay Agency / Network Name <span className="partner-form-required">*</span>
+                Business / Homestay Name <span className="partner-form-required">*</span>
               </label>
               <input
                 type="text"
                 className="partner-form-input"
-                value={agency}
-                onChange={(e) => setAgency(e.target.value)}
-                placeholder="e.g. Khangchendzonga View Homestay"
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="e.g. Biran Homestay"
                 required
               />
-              <span className="partner-form-help">
-                Your registered business or homestay cluster name across North Sikkim.
-              </span>
             </div>
 
             {/* 2-Column: Phone & Email */}
             <div className="partner-form-row">
               <div className="partner-form-group">
                 <label className="partner-form-label">
-                  Primary Contact Phone <span className="partner-form-required">*</span>
+                  Primary Phone <span className="partner-form-required">*</span>
                 </label>
                 <div className="partner-input-with-icon">
                   <Phone size={16} className="partner-input-icon" />
@@ -140,7 +156,9 @@ export default function PartnerProfile() {
               </div>
 
               <div className="partner-form-group">
-                <label className="partner-form-label">Contact Email Address</label>
+                <label className="partner-form-label">
+                  Email Address <span className="partner-form-required">*</span>
+                </label>
                 <div className="partner-input-with-icon">
                   <EnvelopeSimple size={16} className="partner-input-icon" />
                   <input
@@ -148,27 +166,68 @@ export default function PartnerProfile() {
                     className="partner-form-input partner-form-input--has-icon"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="host@sikkimtravel.in"
+                    placeholder="partner@example.com"
+                    required
                   />
                 </div>
               </div>
             </div>
 
-            {/* Regional Location (Fixed) */}
-            <div className="partner-form-group">
-              <div className="partner-form-label-wrap">
-                <label className="partner-form-label">Regional Location</label>
-                <span className="partner-form-badge">
-                  <LockKey size={11} weight="bold" /> Fixed Location
-                </span>
-              </div>
-              <div className="partner-input-with-icon">
-                <MapPin size={16} className="partner-input-icon" color="var(--color-peach-deep)" />
+            {/* 2-Column: District & Town/City */}
+            <div className="partner-form-row">
+              <div className="partner-form-group">
+                <label className="partner-form-label">
+                  Location / District <span className="partner-form-required">*</span>
+                </label>
                 <input
                   type="text"
-                  className="partner-form-input partner-form-input--disabled partner-form-input--has-icon"
-                  value={currentPartner?.location || "Sikkim"}
-                  disabled
+                  className="partner-form-input"
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  placeholder="e.g. South Sikkim"
+                  required
+                />
+              </div>
+
+              <div className="partner-form-group">
+                <label className="partner-form-label">
+                  Town / City <span className="partner-form-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="partner-form-input"
+                  value={town}
+                  onChange={(e) => setTown(e.target.value)}
+                  placeholder="e.g. Namchi"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Address & Pincode */}
+            <div className="partner-form-row">
+              <div className="partner-form-group" style={{ flex: 2 }}>
+                <label className="partner-form-label">
+                  Business Address <span className="partner-form-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  className="partner-form-input"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="e.g. Near Central Park, Namchi"
+                  required
+                />
+              </div>
+
+              <div className="partner-form-group" style={{ flex: 1 }}>
+                <label className="partner-form-label">Pincode</label>
+                <input
+                  type="text"
+                  className="partner-form-input"
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value)}
+                  placeholder="737126"
                 />
               </div>
             </div>

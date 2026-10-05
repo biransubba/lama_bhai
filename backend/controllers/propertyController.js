@@ -164,8 +164,9 @@ exports.getPropertyBySlug = async (req, res, next) => {
       .populate('owner', 'name email avatar phone partnerProfile.agencyName partnerProfile.location')
       .populate({
         path: 'rooms',
-        match: { active: true },
-        select: 'name type description capacity bedConfiguration price amenities image gallery availability',
+        // In Task 12, public website only displays approved listings
+        match: { active: true, status: 'approved' },
+        select: 'name type description capacity bedConfiguration price amenities image gallery availability status location',
       })
       .populate({
         path: 'reviews',
@@ -183,7 +184,7 @@ exports.getPropertyBySlug = async (req, res, next) => {
 
     // Access control for non-approved or inactive properties
     if (property.status !== 'approved' || !property.active) {
-      const isOwner = req.user && req.user._id.toString() === property.owner._id.toString();
+      const isOwner = req.user && property.owner && req.user._id.toString() === property.owner._id.toString();
       const isAdmin = req.user && req.user.role === 'admin';
 
       if (!isOwner && !isAdmin) {
@@ -216,7 +217,7 @@ exports.getPropertyRooms = async (req, res, next) => {
     const isObjectId = mongoose.Types.ObjectId.isValid(id);
     const propertyQuery = isObjectId ? { $or: [{ _id: id }, { slug: id }] } : { slug: id };
 
-    const property = await Property.findOne(propertyQuery).select('_id name status active');
+    const property = await Property.findOne(propertyQuery).select('_id name status active owner');
     if (!property || property.status !== 'approved' || !property.active) {
       return res.status(404).json({
         success: false,
@@ -224,10 +225,16 @@ exports.getPropertyRooms = async (req, res, next) => {
       });
     }
 
-    const rooms = await Room.find({
+    // Enforce status === 'approved' for public visitors
+    const isOwner = req.user && property.owner && req.user._id.toString() === property.owner.toString();
+    const isAdmin = req.user && req.user.role === 'admin';
+    const roomFilter = {
       property: property._id,
       active: true,
-    }).sort({ price: 1 });
+      ...(isOwner || isAdmin ? {} : { status: 'approved' }),
+    };
+
+    const rooms = await Room.find(roomFilter).sort({ price: 1 });
 
     return res.status(200).json({
       success: true,
@@ -255,7 +262,7 @@ exports.getPropertyRoomById = async (req, res, next) => {
     const isObjectId = mongoose.Types.ObjectId.isValid(id);
     const propertyQuery = isObjectId ? { $or: [{ _id: id }, { slug: id }] } : { slug: id };
 
-    const property = await Property.findOne(propertyQuery).select('_id name status active');
+    const property = await Property.findOne(propertyQuery).select('_id name status active owner');
     if (!property || property.status !== 'approved' || !property.active) {
       return res.status(404).json({
         success: false,
@@ -280,6 +287,16 @@ exports.getPropertyRoomById = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         error: 'Room not found for this property',
+      });
+    }
+
+    // Section 15: Public website must only display approved listings
+    const isOwner = req.user && property.owner && req.user._id.toString() === property.owner.toString();
+    const isAdmin = req.user && req.user.role === 'admin';
+    if (room.status !== 'approved' && !isOwner && !isAdmin) {
+      return res.status(404).json({
+        success: false,
+        error: 'Room listing is pending approval or not public',
       });
     }
 

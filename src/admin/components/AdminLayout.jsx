@@ -17,6 +17,7 @@ import {
   ShieldCheck,
   Sparkle,
   Broadcast,
+  Bed,
 } from "phosphor-react";
 import "../styles/admin.css";
 
@@ -24,7 +25,7 @@ const navItems = [
   { label: "Dashboard", path: "/admin", icon: <SquaresFour size={18} weight="duotone" /> },
   { label: "Cars", path: "/admin/cars", icon: <Car size={18} weight="duotone" /> },
   { label: "Bikes", path: "/admin/bikes", icon: <Bicycle size={18} weight="duotone" /> },
-  { label: "Stays", path: "/admin/stays", icon: <HouseLine size={18} weight="duotone" /> },
+  { label: "Listings Moderation", path: "/admin/stays", icon: <Bed size={18} weight="duotone" /> },
   { label: "Partners", path: "/admin/partners", icon: <UsersThree size={18} weight="duotone" /> },
   { label: "Destinations", path: "/admin/destinations", icon: <MapPin size={18} weight="duotone" /> },
   { label: "Live Routes", path: "/admin/live-routes", icon: <Broadcast size={18} weight="duotone" /> },

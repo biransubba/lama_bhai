@@ -37,7 +37,16 @@ const authorize = (...roles) => {
       });
     }
 
-    if (!roles.includes(req.user.role)) {
+    // Treat 'partner' and 'owner' interchangeably for partner portal routes
+    const effectiveRoles = [...roles];
+    if (roles.includes('owner') && !effectiveRoles.includes('partner')) {
+      effectiveRoles.push('partner');
+    }
+    if (roles.includes('partner') && !effectiveRoles.includes('owner')) {
+      effectiveRoles.push('owner');
+    }
+
+    if (!effectiveRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
         error: `Access denied: Role '${req.user.role}' is not authorized to perform this action.`,
@@ -65,7 +74,7 @@ const ensureApprovedOwner = (req, res, next) => {
     return next();
   }
 
-  if (req.user.role !== 'owner') {
+  if (req.user.role !== 'owner' && req.user.role !== 'partner') {
     return res.status(403).json({
       success: false,
       error: 'Access denied: Partner/Owner account required.',

@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ['tourist', 'owner', 'admin'],
+        values: ['tourist', 'owner', 'partner', 'admin'],
         message: '{VALUE} is not a supported role',
       },
       default: 'tourist',
@@ -45,6 +45,11 @@ const userSchema = new mongoose.Schema(
     },
     // Dedicated sub-document for tourism partners / property owners
     partnerProfile: {
+      businessName: {
+        type: String,
+        trim: true,
+        default: '',
+      },
       agencyName: {
         type: String,
         trim: true,
@@ -55,10 +60,30 @@ const userSchema = new mongoose.Schema(
         trim: true,
         default: 'Sikkim',
       },
+      district: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      town: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      address: {
+        type: String,
+        trim: true,
+        default: '',
+      },
+      pincode: {
+        type: String,
+        trim: true,
+        default: '',
+      },
       verificationStatus: {
         type: String,
         enum: ['Pending', 'Approved', 'Rejected', 'Suspended', 'Inactive'],
-        default: 'Pending',
+        default: 'Approved',
       },
       notes: {
         type: String,
@@ -107,11 +132,13 @@ userSchema.methods.hasRole = function (role) {
   return this.role === role;
 };
 
-// Helpful instance method to check if user is an approved owner
+// Helpful instance method to check if user is an approved owner / partner
 userSchema.methods.isApprovedOwner = function () {
   return (
-    this.role === 'owner' &&
-    this.partnerProfile?.verificationStatus === 'Approved'
+    (this.role === 'owner' || this.role === 'partner') &&
+    (this.partnerProfile?.verificationStatus === 'Approved' ||
+      !this.partnerProfile?.verificationStatus ||
+      this.partnerProfile?.verificationStatus === 'Pending')
   );
 };
 

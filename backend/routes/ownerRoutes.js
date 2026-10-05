@@ -23,6 +23,7 @@ router.delete('/properties/:id', ownerController.deleteProperty);
 // Room CRUD
 router.get('/rooms', ownerController.getMyRooms);
 router.get('/rooms/:roomId', ownerController.getRoomById);
+router.post('/rooms', ownerController.addRoom);
 router.post('/properties/:id/rooms', ownerController.addRoom);
 router.put('/rooms/:roomId', ownerController.updateRoom);
 router.delete('/rooms/:roomId', ownerController.deleteRoom);

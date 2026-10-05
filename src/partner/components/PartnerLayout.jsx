@@ -26,9 +26,10 @@ export default function PartnerLayout() {
     authenticated,
     currentPartner,
     isApproved,
-    partnerStays,
-    partnerOffers,
-    partnerBookings,
+    partnerStays = [],
+    partnerRooms = [],
+    partnerOffers = [],
+    partnerBookings = [],
     logoutPartner,
   } = usePartnerAuth();
 
@@ -282,11 +283,11 @@ export default function PartnerLayout() {
       icon: <SquaresFour size={18} weight="duotone" />,
     },
     {
-      label: "My Properties",
+      label: "My Listings",
       path: "/partner/properties",
       end: false,
       icon: <HouseLine size={18} weight="duotone" />,
-      badge: partnerStays.length,
+      badge: partnerRooms?.length || partnerStays?.length,
     },
     {
       label: "Availability",
@@ -362,11 +363,11 @@ export default function PartnerLayout() {
           </div>
         </div>
 
-        {/* Primary CTA: Add Property / Listing */}
-        <div style={{ padding: "0 1.25rem 0.85rem" }}>
+        {/* Primary CTA: Add Listing */}
+        <div style={{ padding: "0 1.25rem 0.85rem", display: "flex", flexDirection: "column", gap: "6px" }}>
           <Link
             to="/partner/properties?add=true"
-            id="partner-sidebar-add-property-btn"
+            id="partner-sidebar-add-listing-btn"
             style={{
               display: "flex",
               alignItems: "center",
@@ -382,9 +383,9 @@ export default function PartnerLayout() {
               boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)",
               transition: "all 0.15s ease",
             }}
-            title="Create and submit a new property listing"
+            title="Create and publish an individual room listing"
           >
-            <Plus size={16} weight="bold" /> + Add Property / Listing
+            <Plus size={16} weight="bold" /> + Add Listing
           </Link>
         </div>
 

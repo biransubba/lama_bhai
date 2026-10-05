@@ -1,29 +1,79 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   HouseLine,
+  Bed,
+  Users,
   CheckCircle,
   XCircle,
+  Plus,
   PencilSimple,
-  Camera,
+  Trash,
   Eye,
+  Camera,
   MapPin,
   MagnifyingGlass,
-  Check,
-  Plus,
-  Phone,
-  Bed,
-  WarningCircle,
+  ArrowSquareOut,
   UploadSimple,
   X,
-  Trash,
+  WarningCircle,
+  Check,
   ArrowsClockwise,
+  Clock,
 } from "phosphor-react";
 import { usePartnerAuth } from "../context/PartnerAuthContext.jsx";
 import { api } from "../../utils/api.js";
-import PhotoManagerModal from "../../admin/components/PhotoManagerModal.jsx";
-import PropertyRoomsManagerModal from "../../admin/components/PropertyRoomsManagerModal.jsx";
 import { parseAndFormatPrice } from "../../utils/priceFormatter.js";
+import "../styles/partner.css";
+
+const PREDEFINED_ROOM_AMENITIES = [
+  "Wi-Fi",
+  "TV",
+  "AC",
+  "Heater",
+  "Hot Water",
+  "Attached Bathroom",
+  "Balcony",
+  "Mountain View",
+  "Room Service",
+  "Wardrobe",
+  "Desk",
+  "Breakfast",
+];
+
+const PREDEFINED_PROPERTY_AMENITIES = [
+  "Wi-Fi",
+  "Parking",
+  "Hot Water",
+  "Restaurant",
+  "Room Service",
+  "TV",
+  "Heater",
+  "Balcony",
+  "Mountain View",
+  "Breakfast",
+];
+
+const ROOM_TYPES = [
+  "Standard",
+  "Deluxe",
+  "Super Deluxe",
+  "Family",
+  "Suite",
+  "Premium",
+  "Dormitory",
+  "Other",
+];
+
+const BED_TYPES = [
+  "Single Bed",
+  "Double Bed",
+  "Queen Bed",
+  "King Bed",
+  "Twin Beds",
+  "Bunk Bed",
+  "Other",
+];
 
 const PROPERTY_TYPES = [
   "Homestay",
@@ -43,69 +93,55 @@ const SIKKIM_DISTRICTS = [
   "Other",
 ];
 
-const ADD_PROPERTY_AMENITIES = [
-  "Wi-Fi",
-  "Parking",
-  "Hot Water",
-  "Restaurant",
-  "Room Service",
-  "TV",
-  "Heater",
-  "Balcony",
-  "Mountain View",
-  "Breakfast",
-];
-
-const COMMON_AMENITIES = [
-  "Hot Water",
-  "Room Heater",
-  "Organic Sikkimese Meals",
-  "Mountain View",
-  "Wi-Fi",
-  "Campfire Area",
-  "Balcony",
-  "Parking",
-  "Attached Bathroom",
-  "Tea / Coffee Maker",
-];
-
 export default function PartnerProperties() {
   const { currentPartner } = usePartnerAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Backend properties state (source of truth from MongoDB)
+  // Data states
   const [properties, setProperties] = useState([]);
+  const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pageError, setPageError] = useState("");
+  const [error, setError] = useState("");
+  const [notification, setNotification] = useState("");
 
+  // Search & Filter states
   const [search, setSearch] = useState("");
-  const [filterAvailability, setFilterAvailability] = useState("");
+  const [propertyFilter, setPropertyFilter] = useState("all");
+  const [availabilityFilter, setAvailabilityFilter] = useState("all");
 
   // Modals state
-  const [editingStay, setEditingStay] = useState(null);
-  const [photoModalStay, setPhotoModalStay] = useState(null);
-  const [roomModalStay, setRoomModalStay] = useState(null);
+  const [showListingModal, setShowListingModal] = useState(false);
+  const [editingListing, setEditingListing] = useState(null);
+  const [showPropertyModal, setShowPropertyModal] = useState(false);
+  const [deletingListing, setDeletingListing] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Edit form state
-  const [formData, setFormData] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState("");
-
-  // Add Property Modal State
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [addPropError, setAddPropError] = useState("");
-  const [successBanner, setSuccessBanner] = useState("");
-
-  // Upload states
+  // Listing Form State
+  const initialListingForm = {
+    propertyId: "",
+    name: "",
+    type: "Standard",
+    customType: "",
+    capacity: 2,
+    bedType: "Double Bed",
+    customBedType: "",
+    numberOfBeds: 1,
+    price: "",
+    description: "",
+    amenities: [],
+    customAmenityInput: "",
+    image: "",
+    gallery: [],
+    availability: "available",
+  };
+  const [listingForm, setListingForm] = useState(initialListingForm);
+  const [listingFormError, setListingFormError] = useState("");
+  const [savingListing, setSavingListing] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
-  const [coverUploadError, setCoverUploadError] = useState("");
   const [uploadingGallery, setUploadingGallery] = useState(false);
-  const [galleryUploadError, setGalleryUploadError] = useState("");
-  const [coverUrlInput, setCoverUrlInput] = useState("");
-  const [galleryUrlInput, setGalleryUrlInput] = useState("");
 
-  const initialNewProperty = {
+  // Property Form State (Strictly property-level only, no room fields)
+  const initialPropertyForm = {
     name: "",
     type: "Homestay",
     description: "",
@@ -113,858 +149,989 @@ export default function PartnerProperties() {
     town: "",
     address: "",
     pincode: "",
-    price: "",
-    phone: currentPartner?.phone || "",
-    email: currentPartner?.email || "",
     amenities: [],
+    customAmenityInput: "",
     image: "",
     gallery: [],
-    latitude: "",
-    longitude: "",
   };
+  const [propertyForm, setPropertyForm] = useState(initialPropertyForm);
+  const [propertyFormError, setPropertyFormError] = useState("");
+  const [savingProperty, setSavingProperty] = useState(false);
+  const [uploadingPropCover, setUploadingPropCover] = useState(false);
+  const [uploadingPropGallery, setUploadingPropGallery] = useState(false);
 
-  const [newPropData, setNewPropData] = useState(initialNewProperty);
-
-  async function handleCoverUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Fetch all properties & listings
+  const loadData = useCallback(async () => {
     try {
-      setUploadingCover(true);
-      setCoverUploadError("");
-      const res = await api.upload.image(file, "lama-bhaila/properties");
-      if (res && res.success && res.data?.url) {
-        setNewPropData((prev) => ({ ...prev, image: res.data.url }));
-      } else {
-        setCoverUploadError(res?.error || "Failed to upload cover image.");
-      }
-    } catch (err) {
-      setCoverUploadError(err.message || "Error uploading cover image.");
-    } finally {
-      setUploadingCover(false);
-    }
-  }
+      setLoading(true);
+      setError("");
 
-  async function handleGalleryUpload(e) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    try {
-      setUploadingGallery(true);
-      setGalleryUploadError("");
-      const res = await api.upload.gallery(files, "Gallery");
-      if (res && res.success) {
-        const list = Array.isArray(res.data) ? res.data : (res.data?.images || []);
-        if (list.length > 0) {
-          const urls = list.map((img) => (typeof img === "string" ? img : img.src));
-          setNewPropData((prev) => ({
-            ...prev,
-            gallery: [...prev.gallery, ...urls],
-          }));
+      // 1. Fetch properties
+      const propsRes = await api.owner.getProperties();
+      const propsData = Array.isArray(propsRes?.data) ? propsRes.data : [];
+      setProperties(propsData);
+
+      // 2. Extract listings or fetch via getRooms
+      let allRooms = [];
+      try {
+        const roomsRes = await api.owner.getRooms();
+        if (roomsRes && roomsRes.success && Array.isArray(roomsRes.data)) {
+          allRooms = roomsRes.data;
         }
-      } else {
-        setGalleryUploadError(res?.error || "Failed to upload gallery images.");
-      }
-    } catch (err) {
-      setGalleryUploadError(err.message || "Error uploading gallery photos.");
-    } finally {
-      setUploadingGallery(false);
-    }
-  }
-
-  async function handleCreateProperty(e) {
-    e.preventDefault();
-    setAddPropError("");
-
-    // Required fields: name, type, description, district, town, address, price, phone, cover image
-    if (!newPropData.name.trim()) {
-      setAddPropError("Property Name is required.");
-      return;
-    }
-    if (!newPropData.type.trim()) {
-      setAddPropError("Property Type is required.");
-      return;
-    }
-    if (!newPropData.description.trim()) {
-      setAddPropError("Property Description is required.");
-      return;
-    }
-    if (!newPropData.district.trim()) {
-      setAddPropError("District is required.");
-      return;
-    }
-    if (!newPropData.town.trim()) {
-      setAddPropError("Town / City is required.");
-      return;
-    }
-    if (!newPropData.address.trim()) {
-      setAddPropError("Address is required.");
-      return;
-    }
-    const cleanPrice = String(newPropData.price || "").trim();
-    if (!cleanPrice || isNaN(Number(cleanPrice)) || Number(cleanPrice) <= 0) {
-      setAddPropError("Please provide a valid Price per Night (greater than 0).");
-      return;
-    }
-    if (!newPropData.phone.trim()) {
-      setAddPropError("Contact Phone Number is required.");
-      return;
-    }
-    if (!newPropData.image.trim()) {
-      setAddPropError("Cover Image is required. Please upload a cover photo or enter an image URL.");
-      return;
-    }
-
-    try {
-      setIsCreating(true);
-
-      const payload = {
-        name: newPropData.name.trim(),
-        type: newPropData.type,
-        description: newPropData.description.trim(),
-        location: {
-          district: newPropData.district,
-          town: newPropData.town.trim(),
-          address: newPropData.address.trim(),
-          pincode: newPropData.pincode.trim(),
-          coordinates: {
-            latitude: newPropData.latitude ? Number(newPropData.latitude) : null,
-            longitude: newPropData.longitude ? Number(newPropData.longitude) : null,
-          },
-        },
-        price: Number(cleanPrice),
-        image: newPropData.image.trim(),
-        gallery: newPropData.gallery.map((g) => (typeof g === "string" ? g.trim() : g.src || g)),
-        amenities: newPropData.amenities,
-        contactDetails: {
-          phone: newPropData.phone.trim(),
-          email: newPropData.email.trim(),
-        },
-      };
-
-      const res = await api.owner.createProperty(payload);
-
-      if (res && res.success) {
-        setShowAddModal(false);
-        setNewPropData({
-          ...initialNewProperty,
-          phone: currentPartner?.phone || "",
-          email: currentPartner?.email || "",
+      } catch (_) {
+        // Fallback to rooms populated in properties
+        propsData.forEach((p) => {
+          if (Array.isArray(p.rooms)) {
+            p.rooms.forEach((r) => {
+              if (r) {
+                allRooms.push({
+                  ...r,
+                  property: {
+                    _id: p._id,
+                    name: p.name,
+                    slug: p.slug,
+                    location: p.location,
+                    status: p.status,
+                    active: p.active,
+                  },
+                });
+              }
+            });
+          }
         });
-        setSuccessBanner("Property created successfully and submitted for Admin approval.");
-        setTimeout(() => setSuccessBanner(""), 7000);
-        await loadProperties();
-      } else {
-        setAddPropError(res?.error || "Failed to create property.");
       }
-    } catch (err) {
-      setAddPropError(err.message || "An error occurred while creating the property.");
-    } finally {
-      setIsCreating(false);
-    }
-  }
 
-  // Load properties scoped strictly to authenticated owner from backend
-  const loadProperties = useCallback(async () => {
-    try {
-      setPageError("");
-      const res = await api.owner.getProperties();
-      if (res && res.success) {
-        setProperties(res.data || []);
-      } else {
-        setProperties([]);
-      }
+      setListings(allRooms);
     } catch (err) {
-      if (err.status === 401) {
-        setPageError("Authentication required. Please log in to view your properties.");
-      } else if (err.status === 403) {
-        setPageError("Access denied: Partner/Owner account required to manage properties.");
-      } else if (err.status >= 500) {
-        setPageError("A server error occurred while retrieving properties. Please try again later.");
-      } else {
-        setPageError(err.message || "Failed to load properties from backend.");
-      }
+      console.error("[PartnerListings] Load error:", err);
+      setError(err.message || "Failed to load listings. Ensure backend is running.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadProperties();
-  }, [loadProperties]);
+    loadData();
+  }, [loadData]);
 
-  // Sync with ?add=true query parameter (e.g. from Sidebar or Dashboard CTA)
+  // Check URL params for quick actions (e.g. from sidebar CTA)
   useEffect(() => {
-    if (searchParams.get("add") === "true" || searchParams.get("new") === "true") {
-      setNewPropData({
-        ...initialNewProperty,
-        phone: currentPartner?.phone || "",
-        email: currentPartner?.email || "",
-      });
-      setAddPropError("");
-      setShowAddModal(true);
-    }
-  }, [searchParams, currentPartner]);
-
-  // Sync with ?manageRooms=<stayId> query parameter
-  useEffect(() => {
-    const targetStayId = searchParams.get("manageRooms");
-    if (targetStayId && properties.length > 0) {
-      const match = properties.find((s) => (s._id || s.id) === targetStayId);
-      if (match) {
-        setRoomModalStay(match);
+    const action = searchParams.get("action");
+    const add = searchParams.get("add");
+    if (action === "add-listing" || add === "true") {
+      if (properties.length === 0 && !loading) {
+        setShowPropertyModal(true);
+      } else if (properties.length > 0) {
+        openAddListingModal();
       }
+      // Remove query param to prevent re-opening on manual refresh
+      setSearchParams({}, { replace: true });
     }
-  }, [searchParams, properties]);
+  }, [searchParams, properties.length, loading, setSearchParams]);
 
-  function handleCloseAddModal() {
-    if (isCreating) return;
-    setShowAddModal(false);
-    if (searchParams.get("add") || searchParams.get("new")) {
-      setSearchParams({});
-    }
-  }
-
-  function handleEditClick(stay) {
-    setEditingStay(stay);
-    const locationStr =
-      typeof stay.location === "object" && stay.location !== null
-        ? (stay.location.town
-            ? `${stay.location.town}, ${stay.location.district}`
-            : stay.location.district || "")
-        : (stay.location || "");
-
-    const contactStr =
-      typeof stay.contactDetails === "object" && stay.contactDetails !== null
-        ? stay.contactDetails.phone || ""
-        : (stay.contactDetails || currentPartner?.phone || "");
-
-    setFormData({
-      name: stay.name || "",
-      location: locationStr,
-      type: stay.type || "Homestay",
-      price: stay.price !== undefined && stay.price !== null ? String(stay.price) : "",
-      contactDetails: contactStr,
-      description: stay.description || "",
-      amenities: Array.isArray(stay.amenities) ? [...stay.amenities] : [],
-      availability:
-        stay.availability ||
-        (stay.active !== false ? "available" : "unavailable"),
+  // Open Add Listing Modal
+  const openAddListingModal = () => {
+    setEditingListing(null);
+    setListingForm({
+      ...initialListingForm,
+      propertyId: properties[0]?._id || "",
     });
-    setFormError("");
-  }
+    setListingFormError("");
+    setShowListingModal(true);
+  };
 
-  async function handleSaveStay(e) {
+  // Open Edit Listing Modal
+  const openEditListingModal = (room) => {
+    setEditingListing(room);
+
+    const isPredefinedType = ROOM_TYPES.includes(room.type) && room.type !== "Other";
+    const isPredefinedBed = BED_TYPES.includes(room.bedType || room.bedConfiguration) && room.bedType !== "Other";
+
+    setListingForm({
+      propertyId: room.property?._id || room.property || properties[0]?._id || "",
+      name: room.name || "",
+      type: isPredefinedType ? room.type : "Other",
+      customType: !isPredefinedType ? room.customType || room.type : "",
+      capacity: room.capacity || 2,
+      bedType: isPredefinedBed ? room.bedType || "Double Bed" : "Other",
+      customBedType: !isPredefinedBed ? room.customBedType || room.bedType || "" : "",
+      numberOfBeds: room.numberOfBeds || 1,
+      price: room.price || "",
+      description: room.description || "",
+      amenities: Array.isArray(room.amenities) ? [...room.amenities] : [],
+      customAmenityInput: "",
+      image: room.image || "",
+      gallery: Array.isArray(room.gallery)
+        ? room.gallery.map((g) => (typeof g === "string" ? g : g?.src || g?.url || ""))
+        : [],
+      availability: room.availability || "available",
+    });
+    setListingFormError("");
+    setShowListingModal(true);
+  };
+
+  // Upload Cover Image for Room Listing
+  const handleRoomCoverUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingCover(true);
+      setListingFormError("");
+      const res = await api.upload.image(file, "lama-bhaila/rooms");
+      if (res && res.success && res.data?.url) {
+        setListingForm((prev) => ({ ...prev, image: res.data.url }));
+      } else {
+        setListingFormError(res?.error || "Failed to upload cover image.");
+      }
+    } catch (err) {
+      setListingFormError(err.message || "Error uploading cover photo.");
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
+  // Upload Gallery Images for Room Listing
+  const handleRoomGalleryUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    try {
+      setUploadingGallery(true);
+      setListingFormError("");
+      const res = await api.upload.gallery(files, "Room");
+      if (res && res.success && Array.isArray(res.data)) {
+        const newUrls = res.data.map((item) => (typeof item === "string" ? item : item.url || item.src)).filter(Boolean);
+        setListingForm((prev) => ({
+          ...prev,
+          gallery: [...prev.gallery, ...newUrls],
+        }));
+      } else {
+        setListingFormError(res?.error || "Failed to upload gallery photos.");
+      }
+    } catch (err) {
+      setListingFormError(err.message || "Error uploading gallery photos.");
+    } finally {
+      setUploadingGallery(false);
+    }
+  };
+
+  // Delete a Gallery Image from Room Listing
+  const removeRoomGalleryPhoto = (indexToRemove) => {
+    setListingForm((prev) => ({
+      ...prev,
+      gallery: prev.gallery.filter((_, idx) => idx !== indexToRemove),
+    }));
+  };
+
+  // Add Custom Amenity to Room Listing
+  const handleAddCustomRoomAmenity = () => {
+    const val = listingForm.customAmenityInput.trim();
+    if (!val) return;
+    if (listingForm.amenities.includes(val)) {
+      setListingFormError(`"${val}" is already added.`);
+      return;
+    }
+    setListingForm((prev) => ({
+      ...prev,
+      amenities: [...prev.amenities, val],
+      customAmenityInput: "",
+    }));
+    setListingFormError("");
+  };
+
+  // Toggle Predefined Amenity for Room Listing
+  const handleToggleRoomAmenity = (amenity) => {
+    setListingForm((prev) => {
+      const exists = prev.amenities.includes(amenity);
+      return {
+        ...prev,
+        amenities: exists
+          ? prev.amenities.filter((a) => a !== amenity)
+          : [...prev.amenities, amenity],
+      };
+    });
+  };
+
+  // Remove Any Amenity from Room Listing
+  const handleRemoveRoomAmenity = (amenityToRemove) => {
+    setListingForm((prev) => ({
+      ...prev,
+      amenities: prev.amenities.filter((a) => a !== amenityToRemove),
+    }));
+  };
+
+  // Submit Add / Edit Room Listing
+  const handleSaveListing = async (e) => {
     e.preventDefault();
-    if (!editingStay) return;
-    setSaving(true);
-    setFormError("");
+    setListingFormError("");
+
+    if (!listingForm.propertyId) {
+      setListingFormError("Please select a parent Property for this listing.");
+      return;
+    }
+    if (!listingForm.name.trim()) {
+      setListingFormError("Room Name is required (e.g. Deluxe Mountain View Room).");
+      return;
+    }
+    if (!listingForm.price || Number(listingForm.price) <= 0) {
+      setListingFormError("Price Per Night must be a valid positive amount.");
+      return;
+    }
+    if (!listingForm.image || !listingForm.image.trim()) {
+      setListingFormError("A Cover/Banner image is compulsory. Please upload a cover image.");
+      return;
+    }
 
     try {
-      const stayId = editingStay._id || editingStay.id;
-      const cleanPrice = String(formData.price || "").replace(/[^0-9.]/g, "");
-      const numericPrice = cleanPrice ? Number(cleanPrice) : (editingStay.price || 0);
+      setSavingListing(true);
 
-      // Preserve or update location structure
-      let locationObj = editingStay.location;
-      if (typeof formData.location === "string" && formData.location.trim()) {
-        const parts = formData.location.split(",").map((s) => s.trim());
-        locationObj = {
-          district: editingStay.location?.district || "East Sikkim",
-          town: parts[0] || editingStay.location?.town || "Gangtok",
-          address: editingStay.location?.address || "",
-          coordinates: editingStay.location?.coordinates || { latitude: null, longitude: null },
-        };
-        if (parts.length > 1 && parts[1]) {
-          locationObj.district = parts[1];
-        }
-      }
+      const finalType =
+        listingForm.type === "Other" && listingForm.customType.trim()
+          ? listingForm.customType.trim()
+          : listingForm.type;
 
-      const updatePayload = {
-        name: formData.name.trim(),
-        type: formData.type,
-        price: numericPrice,
-        description: formData.description.trim(),
-        amenities: formData.amenities || [],
-        availability: formData.availability,
-        location: locationObj,
-        contactDetails: {
-          phone: formData.contactDetails.trim(),
-          email: editingStay.contactDetails?.email || currentPartner?.email || "",
-        },
+      const finalBedType =
+        listingForm.bedType === "Other" && listingForm.customBedType.trim()
+          ? listingForm.customBedType.trim()
+          : listingForm.bedType;
+
+      const payload = {
+        name: listingForm.name.trim(),
+        type: finalType,
+        customType: listingForm.type === "Other" ? listingForm.customType.trim() : "",
+        capacity: Number(listingForm.capacity) || 2,
+        bedType: finalBedType,
+        customBedType: listingForm.bedType === "Other" ? listingForm.customBedType.trim() : "",
+        numberOfBeds: Number(listingForm.numberOfBeds) || 1,
+        bedConfiguration: `${listingForm.numberOfBeds || 1} ${finalBedType}`,
+        price: Number(listingForm.price),
+        description: listingForm.description.trim(),
+        amenities: listingForm.amenities,
+        image: listingForm.image.trim(),
+        gallery: listingForm.gallery,
+        availability: listingForm.availability,
       };
 
-      await api.owner.updateProperty(stayId, updatePayload);
-      setEditingStay(null);
-      await loadProperties();
-    } catch (err) {
-      if (err.status === 403) {
-        setFormError("Access denied: You do not have permission to modify this property.");
-      } else if (err.status === 404) {
-        setFormError("Property not found. It may have been removed.");
-      } else if (err.status === 400) {
-        setFormError(err.message || "Invalid property details provided. Please review inputs.");
+      if (editingListing) {
+        // Edit ONLY this room
+        await api.owner.updateRoom(editingListing._id || editingListing.id, payload);
+        setNotification(`Listing "${payload.name}" updated successfully.`);
       } else {
-        setFormError(err.message || "Failed to save property changes. Please try again.");
+        // Create new room under selected property
+        await api.owner.addRoom(listingForm.propertyId, payload);
+        setNotification(`Room listing "${payload.name}" created successfully.`);
       }
+
+      setShowListingModal(false);
+      await loadData();
+    } catch (err) {
+      console.error("[PartnerListings] Save room error:", err);
+      setListingFormError(err.message || "Failed to save room listing.");
     } finally {
-      setSaving(false);
+      setSavingListing(false);
     }
-  }
+  };
 
-  function toggleAmenity(amenity) {
-    const list = formData.amenities || [];
-    if (list.includes(amenity)) {
-      setFormData({ ...formData, amenities: list.filter((a) => a !== amenity) });
-    } else {
-      setFormData({ ...formData, amenities: [...list, amenity] });
+  // Delete Listing Confirmation
+  const handleDeleteListing = async () => {
+    if (!deletingListing) return;
+    try {
+      setIsDeleting(true);
+      const roomId = deletingListing._id || deletingListing.id;
+      await api.owner.deleteRoom(roomId);
+      setNotification(`Listing "${deletingListing.name}" was deleted. Parent property remains intact.`);
+      setDeletingListing(null);
+      await loadData();
+    } catch (err) {
+      console.error("[PartnerListings] Delete error:", err);
+      setError(err.message || "Failed to delete room listing.");
+    } finally {
+      setIsDeleting(false);
     }
-  }
+  };
 
-  async function toggleStayAvailability(stay) {
-    const isCurrentAvail =
-      stay.availability === "available" ||
-      (stay.availability !== "unavailable" && stay.active !== false);
-    const nextStatus = isCurrentAvail ? "unavailable" : "available";
+  // Toggle Room Availability directly from card
+  const handleToggleAvailability = async (room) => {
+    try {
+      const nextAvail = room.availability === "available" ? "unavailable" : "available";
+      const roomId = room._id || room.id;
+      await api.owner.updateRoom(roomId, { availability: nextAvail });
+      setNotification(`Updated "${room.name}" availability to ${nextAvail}.`);
+      await loadData();
+    } catch (err) {
+      console.error("[PartnerListings] Toggle availability error:", err);
+      setError(err.message || "Failed to update availability.");
+    }
+  };
+
+  // Property Cover Upload
+  const handlePropCoverUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploadingPropCover(true);
+      setPropertyFormError("");
+      const res = await api.upload.image(file, "lama-bhaila/properties");
+      if (res && res.success && res.data?.url) {
+        setPropertyForm((prev) => ({ ...prev, image: res.data.url }));
+      } else {
+        setPropertyFormError(res?.error || "Failed to upload cover image.");
+      }
+    } catch (err) {
+      setPropertyFormError(err.message || "Error uploading property cover.");
+    } finally {
+      setUploadingPropCover(false);
+    }
+  };
+
+  // Property Gallery Upload
+  const handlePropGalleryUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    try {
+      setUploadingPropGallery(true);
+      setPropertyFormError("");
+      const res = await api.upload.gallery(files, "Property");
+      if (res && res.success && Array.isArray(res.data)) {
+        const newUrls = res.data.map((item) => (typeof item === "string" ? item : item.url || item.src)).filter(Boolean);
+        setPropertyForm((prev) => ({
+          ...prev,
+          gallery: [...prev.gallery, ...newUrls],
+        }));
+      } else {
+        setPropertyFormError(res?.error || "Failed to upload gallery photos.");
+      }
+    } catch (err) {
+      setPropertyFormError(err.message || "Error uploading gallery photos.");
+    } finally {
+      setUploadingPropGallery(false);
+    }
+  };
+
+  // Add Custom Amenity to Property
+  const handleAddCustomPropAmenity = () => {
+    const val = propertyForm.customAmenityInput.trim();
+    if (!val) return;
+    if (propertyForm.amenities.includes(val)) {
+      setPropertyFormError(`"${val}" is already added.`);
+      return;
+    }
+    setPropertyForm((prev) => ({
+      ...prev,
+      amenities: [...prev.amenities, val],
+      customAmenityInput: "",
+    }));
+    setPropertyFormError("");
+  };
+
+  // Toggle Property Predefined Amenity
+  const handleTogglePropAmenity = (amenity) => {
+    setPropertyForm((prev) => {
+      const exists = prev.amenities.includes(amenity);
+      return {
+        ...prev,
+        amenities: exists
+          ? prev.amenities.filter((a) => a !== amenity)
+          : [...prev.amenities, amenity],
+      };
+    });
+  };
+
+  // Submit Add Property Form
+  const handleSaveProperty = async (e) => {
+    e.preventDefault();
+    setPropertyFormError("");
+
+    if (!propertyForm.name.trim()) {
+      setPropertyFormError("Property Name is required (e.g. Biran Homestay).");
+      return;
+    }
+    if (!propertyForm.town.trim()) {
+      setPropertyFormError("Town / City is required (e.g. Namchi).");
+      return;
+    }
+    if (!propertyForm.address.trim()) {
+      setPropertyFormError("Address is required.");
+      return;
+    }
+    if (!propertyForm.image.trim()) {
+      setPropertyFormError("A Property Cover Photo is required.");
+      return;
+    }
 
     try {
-      const stayId = stay._id || stay.id;
-      await api.owner.updateProperty(stayId, { availability: nextStatus });
-      await loadProperties();
-    } catch (err) {
-      if (err.status === 403) {
-        setPageError("Access denied: You do not have permission to update this property.");
-      } else {
-        setPageError(err.message || "Failed to update property availability.");
+      setSavingProperty(true);
+      const payload = {
+        name: propertyForm.name.trim(),
+        type: propertyForm.type,
+        description: propertyForm.description.trim() || `Welcome to ${propertyForm.name.trim()}`,
+        location: {
+          district: propertyForm.district,
+          town: propertyForm.town.trim(),
+          address: propertyForm.address.trim(),
+          pincode: propertyForm.pincode.trim(),
+        },
+        amenities: propertyForm.amenities,
+        image: propertyForm.image.trim(),
+        gallery: propertyForm.gallery,
+        // No room information is passed here — Property represents the business/accommodation only
+      };
+
+      const res = await api.owner.createProperty(payload);
+      setNotification(`Property "${propertyForm.name}" created and submitted for Admin review (Pending).`);
+      setShowPropertyModal(false);
+      setPropertyForm(initialPropertyForm);
+      await loadData();
+
+      // Open Add Listing modal for the newly created property
+      if (res?.data?._id) {
+        setListingForm({
+          ...initialListingForm,
+          propertyId: res.data._id,
+        });
+        setShowListingModal(true);
       }
+    } catch (err) {
+      console.error("[PartnerProperties] Create property error:", err);
+      setPropertyFormError(err.message || "Failed to create property.");
+    } finally {
+      setSavingProperty(false);
     }
-  }
+  };
 
-  // Filter scoped stays in memory
-  const filteredStays = properties.filter((stay) => {
-    const locationStr =
-      typeof stay.location === "object" && stay.location !== null
-        ? `${stay.location.town || ""} ${stay.location.district || ""}`
-        : (stay.location || "");
+  // Filter listings
+  const filteredListings = listings.filter((room) => {
+    // Property filter
+    const propId = room.property?._id || room.property;
+    if (propertyFilter !== "all" && propId !== propertyFilter) {
+      return false;
+    }
 
-    const matchSearch =
-      !search ||
-      stay.name.toLowerCase().includes(search.toLowerCase()) ||
-      locationStr.toLowerCase().includes(search.toLowerCase());
+    // Availability filter
+    if (availabilityFilter !== "all" && room.availability !== availabilityFilter) {
+      return false;
+    }
 
-    const isAvail =
-      stay.availability === "available" ||
-      (stay.availability !== "unavailable" && stay.active !== false);
+    // Text search
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const nameMatch = (room.name || "").toLowerCase().includes(q);
+      const propMatch = (room.property?.name || "").toLowerCase().includes(q);
+      const locMatch = (room.property?.location?.town || "").toLowerCase().includes(q);
+      const typeMatch = (room.type || "").toLowerCase().includes(q);
+      return nameMatch || propMatch || locMatch || typeMatch;
+    }
 
-    const matchAvail =
-      !filterAvailability ||
-      (filterAvailability === "available" && isAvail) ||
-      (filterAvailability === "unavailable" && !isAvail);
-
-    return matchSearch && matchAvail;
+    return true;
   });
 
   return (
-    <div>
-      {/* Top Banner */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "var(--space-md)" }}>
-        <div>
-          <h1 className="admin-page-title" style={{ margin: 0 }}>
-            My Properties ({properties.length})
-          </h1>
-          <p className="admin-page-note" style={{ margin: "4px 0 0" }}>
-            Manage your properties for <strong>{currentPartner?.name}</strong> ({currentPartner?.agency}). Create listings, update room rates, host contacts, descriptions, and amenities.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="admin-btn admin-btn--primary"
-          onClick={() => {
-            setNewPropData({
-              ...initialNewProperty,
-              phone: currentPartner?.phone || "",
-              email: currentPartner?.email || "",
-            });
-            setAddPropError("");
-            setShowAddModal(true);
-          }}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            fontSize: "0.92rem",
-            padding: "10px 18px",
-            fontWeight: 700,
-            background: "var(--color-peach-deep)",
-            color: "#ffffff",
-            borderRadius: "var(--radius-sm)",
-            border: "none",
-            cursor: "pointer",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-          }}
-          id="partner-add-property-btn"
-          title="Create a new property listing"
-        >
-          <Plus size={16} weight="bold" /> + Add Property / Listing
-        </button>
-      </div>
-
-      {successBanner && (
+    <div className="partner-page" style={{ padding: "28px 32px" }}>
+      {/* Toast Notification Banner */}
+      {notification && (
         <div
           style={{
+            marginBottom: "20px",
+            padding: "12px 18px",
+            background: "#ecfdf5",
+            border: "1px solid #a7f3d0",
+            borderRadius: "8px",
+            color: "#065f46",
             display: "flex",
             alignItems: "center",
-            gap: "8px",
-            background: "#dcfce7",
-            border: "1px solid #bbf7d0",
-            color: "#15803d",
-            padding: "12px 16px",
-            borderRadius: "var(--radius-sm)",
-            marginBottom: "var(--space-md)",
+            justifyContent: "space-between",
             fontSize: "0.9rem",
             fontWeight: 600,
           }}
         >
-          <CheckCircle size={20} weight="fill" style={{ flexShrink: 0 }} />
-          <span>{successBanner}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <CheckCircle size={18} weight="fill" color="#10b981" />
+            <span>{notification}</span>
+          </div>
+          <button
+            onClick={() => setNotification("")}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#065f46" }}
+          >
+            <X size={16} />
+          </button>
         </div>
       )}
 
-      {pageError && (
+      {/* Global Error Banner */}
+      {error && (
         <div
           style={{
+            marginBottom: "20px",
+            padding: "12px 18px",
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            borderRadius: "8px",
+            color: "#991b1b",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "10px",
-            background: "#fee2e2",
-            border: "1px solid #fecaca",
-            borderLeft: "4px solid #ef4444",
-            color: "#991b1b",
-            padding: "10px 14px",
-            borderRadius: "var(--radius-sm)",
-            marginBottom: "var(--space-md)",
-            fontSize: "0.85rem",
+            fontSize: "0.9rem",
+            fontWeight: 600,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <WarningCircle size={18} style={{ flexShrink: 0 }} />
-            <span>{pageError}</span>
+            <WarningCircle size={18} weight="fill" color="#ef4444" />
+            <span>{error}</span>
           </div>
-          <Link
-            to="/partner/login"
-            className="admin-btn admin-btn--primary"
-            style={{
-              padding: "6px 14px",
-              fontSize: "0.8rem",
-              textDecoration: "none",
-              background: "#991b1b",
-              color: "#ffffff",
-            }}
+          <button
+            onClick={() => setError("")}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#991b1b" }}
           >
-            Log In as Partner &rarr;
-          </Link>
+            <X size={16} />
+          </button>
         </div>
       )}
 
-      {/* Filter and Search Bar */}
-      <div className="admin-filter-bar" style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "var(--space-md)" }}>
-        <div style={{ position: "relative", flexGrow: 1, maxWidth: "360px" }}>
+      {/* Page Header */}
+      <div
+        className="partner-page-header"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "16px",
+          marginBottom: "24px",
+        }}
+      >
+        <div>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "1.85rem",
+              fontFamily: "var(--font-display, inherit)",
+              fontWeight: 800,
+              color: "var(--color-navy, #152238)",
+            }}
+          >
+            My Listings
+          </h1>
+          <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: "0.92rem" }}>
+            Manage your individual bookable room listings.
+          </p>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          {/* Primary Button: + Add Listing (TASK 12: ONLY Add Listing, NO Add Property) */}
+          <button
+            type="button"
+            onClick={openAddListingModal}
+            id="partner-btn-add-listing"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "10px 20px",
+              background: "var(--color-peach-deep, #c2613d)",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "8px",
+              fontWeight: 700,
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(194, 97, 61, 0.35)",
+              transition: "all 0.15s ease",
+            }}
+          >
+            <Plus size={18} weight="bold" /> + Add Listing
+          </button>
+        </div>
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div
+        style={{
+          background: "#ffffff",
+          padding: "14px 18px",
+          borderRadius: "10px",
+          border: "1px solid #e2e8f0",
+          display: "flex",
+          alignItems: "center",
+          gap: "14px",
+          flexWrap: "wrap",
+          marginBottom: "24px",
+        }}
+      >
+        {/* Search */}
+        <div style={{ position: "relative", flex: "1 1 260px" }}>
           <MagnifyingGlass
             size={16}
-            style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)" }}
+            style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }}
           />
           <input
             type="text"
-            placeholder="Search my homestays..."
+            placeholder="Search room name, property, or location..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="admin-input"
-            style={{ paddingLeft: "32px", width: "100%" }}
-          />
-        </div>
-
-        <select
-          value={filterAvailability}
-          onChange={(e) => setFilterAvailability(e.target.value)}
-          className="admin-input"
-          style={{ width: "auto" }}
-        >
-          <option value="">All Availability</option>
-          <option value="available">Available Only</option>
-          <option value="unavailable">Unavailable Only</option>
-        </select>
-      </div>
-
-      {/* Loading State */}
-      {loading ? (
-        <div style={{ padding: "60px 20px", textAlign: "center" }}>
-          <div
             style={{
-              width: "36px",
-              height: "36px",
-              border: "3px solid var(--color-peach-light)",
-              borderTopColor: "var(--color-peach-deep)",
-              borderRadius: "50%",
-              animation: "partner-spin 0.8s linear infinite",
-              margin: "0 auto 12px",
+              width: "100%",
+              padding: "8px 12px 8px 36px",
+              borderRadius: "6px",
+              border: "1px solid #cbd5e1",
+              fontSize: "0.85rem",
+              boxSizing: "border-box",
             }}
           />
-          <style>{`@keyframes partner-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-          <span style={{ color: "var(--color-navy)", fontSize: "0.95rem", fontWeight: 600 }}>
-            Loading your properties...
-          </span>
         </div>
-      ) : filteredStays.length === 0 ? (
-        /* Empty State */
-        <div className="admin-card" style={{ padding: "48px 24px", textAlign: "center", color: "var(--color-text-muted)" }}>
-          {properties.length === 0 ? (
-            <div style={{ maxWidth: "440px", margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
-              <div style={{ width: "54px", height: "54px", borderRadius: "50%", background: "rgba(224, 122, 95, 0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-peach-deep)" }}>
-                <HouseLine size={28} weight="duotone" />
-              </div>
-              <h3 style={{ margin: 0, fontSize: "1.2rem", color: "var(--color-navy)", fontWeight: 700 }}>
-                No properties yet.
-              </h3>
-              <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: 1.5, color: "#64748b" }}>
-                Create your first property listing and submit it for Admin approval.
-              </p>
-              <button
-                type="button"
-                className="admin-btn admin-btn--primary"
-                onClick={() => {
-                  setNewPropData({
-                    ...initialNewProperty,
-                    phone: currentPartner?.phone || "",
-                    email: currentPartner?.email || "",
-                  });
-                  setAddPropError("");
-                  setShowAddModal(true);
-                }}
-                style={{
-                  marginTop: "8px",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  background: "var(--color-peach-deep)",
-                  color: "#ffffff",
-                  padding: "10px 18px",
-                  fontWeight: 700,
-                  fontSize: "0.9rem",
-                  borderRadius: "var(--radius-sm)",
-                  border: "none",
-                  cursor: "pointer",
-                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
-                }}
-                id="partner-empty-add-property-btn"
-                title="Create a new property listing"
-              >
-                <Plus size={16} weight="bold" /> + Add Property / Listing
-              </button>
-            </div>
-          ) : (
-            "No properties match your search criteria."
-          )}
+
+        {/* Filter by Property */}
+        {properties.length > 1 && (
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>Property:</span>
+            <select
+              value={propertyFilter}
+              onChange={(e) => setPropertyFilter(e.target.value)}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "6px",
+                border: "1px solid #cbd5e1",
+                fontSize: "0.85rem",
+                background: "#ffffff",
+                color: "#1e293b",
+                fontWeight: 500,
+              }}
+            >
+              <option value="all">All Properties ({properties.length})</option>
+              {properties.map((p) => (
+                <option key={p._id} value={p._id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Filter by Availability */}
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <span style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 600 }}>Status:</span>
+          <select
+            value={availabilityFilter}
+            onChange={(e) => setAvailabilityFilter(e.target.value)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "6px",
+              border: "1px solid #cbd5e1",
+              fontSize: "0.85rem",
+              background: "#ffffff",
+              color: "#1e293b",
+              fontWeight: 500,
+            }}
+          >
+            <option value="all">All Availability</option>
+            <option value="available">🟢 Available Only</option>
+            <option value="unavailable">🔴 Unavailable Only</option>
+          </select>
+        </div>
+
+        {/* Refresh button */}
+        <button
+          type="button"
+          onClick={loadData}
+          title="Refresh listings from database"
+          style={{
+            marginLeft: "auto",
+            background: "#f1f5f9",
+            border: "1px solid #cbd5e1",
+            borderRadius: "6px",
+            padding: "8px 12px",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "5px",
+            fontSize: "0.8rem",
+            color: "#475569",
+            fontWeight: 600,
+          }}
+        >
+          <ArrowsClockwise size={14} /> Refresh
+        </button>
+      </div>
+
+      {/* Main Content Area */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "60px 0", color: "#64748b" }}>
+          <ArrowsClockwise size={32} style={{ animation: "partner-spin 0.8s linear infinite" }} />
+          <p style={{ marginTop: "12px", fontWeight: 600 }}>Loading listings...</p>
+        </div>
+      ) : listings.length === 0 ? (
+        /* Empty State: Clean marketplace view for individual room listings */
+        <div
+          style={{
+            background: "#ffffff",
+            borderRadius: "12px",
+            border: "1px solid #e2e8f0",
+            padding: "60px 24px",
+            textAlign: "center",
+            maxWidth: "540px",
+            margin: "40px auto",
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.04)",
+          }}
+        >
+          <div
+            style={{
+              width: "68px",
+              height: "68px",
+              borderRadius: "50%",
+              background: "rgba(194, 97, 61, 0.12)",
+              color: "var(--color-peach-deep, #c2613d)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: "16px",
+            }}
+          >
+            <Bed size={36} weight="duotone" />
+          </div>
+          <h2 style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--color-navy, #152238)", margin: "0 0 8px" }}>
+            No room listings yet.
+          </h2>
+          <p style={{ fontSize: "0.9rem", color: "#64748b", margin: "0 0 24px", lineHeight: 1.5 }}>
+            Manage your individual bookable room listings. Click &quot;+ Add Listing&quot; to create your first room.
+          </p>
+          <button
+            type="button"
+            onClick={openAddListingModal}
+            id="partner-empty-add-listing-btn"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "12px 24px",
+              background: "var(--color-peach-deep, #c2613d)",
+              color: "#ffffff",
+              border: "none",
+              borderRadius: "8px",
+              fontWeight: 700,
+              fontSize: "0.95rem",
+              cursor: "pointer",
+              boxShadow: "0 3px 10px rgba(194, 97, 61, 0.3)",
+            }}
+          >
+            <Plus size={18} weight="bold" /> + Add Listing
+          </button>
+        </div>
+      ) : filteredListings.length === 0 ? (
+        /* No Search Matches */
+        <div style={{ textAlign: "center", padding: "50px 20px", color: "#64748b" }}>
+          <p style={{ fontSize: "1rem", fontWeight: 600 }}>No room listings match your search filters.</p>
+          <button
+            type="button"
+            onClick={() => {
+              setSearch("");
+              setPropertyFilter("all");
+              setAvailabilityFilter("all");
+            }}
+            style={{
+              marginTop: "8px",
+              background: "#f1f5f9",
+              border: "1px solid #cbd5e1",
+              borderRadius: "6px",
+              padding: "6px 14px",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+            }}
+          >
+            Clear Filters
+          </button>
         </div>
       ) : (
-        /* Property Cards Grid */
-        <div className="partner-property-grid">
-          {filteredStays.map((stay) => {
-            const stayId = stay._id || stay.id;
-            const isAvailable =
-              stay.availability === "available" ||
-              (stay.availability !== "unavailable" && stay.active !== false);
+        /* PART 2: Individual Room Listing Cards Grid */
+        <div className="partner-listings-grid">
+          {filteredListings.map((room) => {
+            const parentProp =
+              room.property && typeof room.property === "object"
+                ? room.property
+                : properties.find((p) => p._id === room.property) || {};
 
-            const rawCover = stay.image || (stay.gallery?.[0]?.src || stay.gallery?.[0]?.dataUrl) || null;
-            const coverImg = typeof rawCover === "object" && rawCover !== null
-              ? (rawCover.dataUrl || rawCover.src || "")
-              : rawCover;
+            const locationStr = [
+              parentProp.location?.town,
+              parentProp.location?.district,
+              "Sikkim",
+            ]
+              .filter(Boolean)
+              .join(", ");
 
-            const locationDisplay =
-              typeof stay.location === "object" && stay.location !== null
-                ? (stay.location.town ? `${stay.location.town}, ${stay.location.district}` : stay.location.district || "Sikkim")
-                : (stay.location || "Sikkim");
+            const isAvailable = room.availability === "available";
 
-            const contactPhone =
-              typeof stay.contactDetails === "object" && stay.contactDetails !== null
-                ? stay.contactDetails.phone || ""
-                : (stay.contactDetails || "");
+            const coverUrl =
+              room.image ||
+              (Array.isArray(room.gallery) && (room.gallery[0]?.src || room.gallery[0])) ||
+              parentProp.image ||
+              "https://images.unsplash.com/photo-1590490360182-c33d57733427";
 
-            // Rooms populated directly by backend from MongoDB
-            const stayRooms = Array.isArray(stay.rooms) ? stay.rooms.filter((r) => r.active !== false) : [];
-            const availRooms = stayRooms.filter((r) => r.availability === "available" || (r.active !== false && !r.availability));
+            const publicUrl = `/stays/${parentProp.slug || parentProp._id}/rooms/${room._id || room.id}`;
 
             return (
-              <div key={stayId} className="partner-property-card">
-                {/* Photo / Cover */}
-                <div className="partner-property-cover">
-                  {coverImg ? (
-                    <img src={coverImg} alt={stay.name} />
-                  ) : (
-                    <div
-                      style={{
-                        height: "100%",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "var(--color-text-muted)",
-                        background: "#f1f5f9",
-                        fontSize: "0.85rem",
-                      }}
-                    >
-                      <HouseLine size={36} color="#94a3b8" />
-                      <span style={{ marginTop: "4px" }}>No photo uploaded</span>
-                    </div>
-                  )}
+              <div key={room._id || room.id} className="listing-card" id={`listing-card-${room._id || room.id}`}>
+                {/* Card Cover Image & Badges */}
+                <div className="listing-card__image-container">
+                  <img
+                    src={coverUrl}
+                    alt={room.name}
+                    className="listing-card__image"
+                    loading="lazy"
+                  />
 
-                  <div className="partner-property-badge-wrap">
-                    <span
-                      style={{
-                        fontSize: "0.72rem",
-                        fontWeight: 700,
-                        padding: "3px 8px",
-                        borderRadius: "999px",
-                        background: "rgba(23, 36, 58, 0.85)",
-                        color: "#fff",
-                      }}
-                    >
-                      {stay.type}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "0.72rem",
-                        fontWeight: 700,
-                        padding: "3px 8px",
-                        borderRadius: "999px",
-                        background: isAvailable ? "#1b5e20" : "#b71c1c",
-                        color: "#fff",
-                      }}
-                    >
-                      {isAvailable ? "Available" : "Unavailable / Booked"}
-                    </span>
-                    {/* Approval Status Badge */}
-                    {stay.status === "approved" ? (
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          padding: "3px 8px",
-                          borderRadius: "999px",
-                          background: "#15803d",
-                          color: "#fff",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "3px",
-                        }}
-                        title="Approved by Admin — Live on Lama Bhai platform"
-                      >
-                        <Check size={11} weight="bold" /> Approved
-                      </span>
-                    ) : stay.status === "rejected" ? (
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          padding: "3px 8px",
-                          borderRadius: "999px",
-                          background: "#b91c1c",
-                          color: "#fff",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "3px",
-                        }}
-                        title={stay.reviewerNotes ? `Rejected: ${stay.reviewerNotes}` : "Rejected by Admin"}
-                      >
-                        <X size={11} weight="bold" /> Rejected
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 700,
-                          padding: "3px 8px",
-                          borderRadius: "999px",
-                          background: "#d97706",
-                          color: "#fff",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "3px",
-                        }}
-                        title="Pending Admin verification and approval"
-                      >
-                        ⏳ Pending Approval
-                      </span>
-                    )}
-                  </div>
+                  {/* Availability Badge */}
+                  <span
+                    className={`listing-card__status-badge ${
+                      isAvailable
+                        ? "listing-card__status-badge--available"
+                        : "listing-card__status-badge--unavailable"
+                    }`}
+                    onClick={() => handleToggleAvailability(room)}
+                    style={{ cursor: "pointer" }}
+                    title="Click to toggle availability"
+                  >
+                    {isAvailable ? "🟢 Available" : "🔴 Unavailable"}
+                  </span>
+
+                  {/* Parent Property Tag */}
+                  <span className="listing-card__property-tag">
+                    {parentProp.name || "Homestay"}
+                  </span>
                 </div>
 
-                {/* Body */}
-                <div className="partner-property-body">
-                  {/* Property Title & Availability Toggle */}
-                  <div className="partner-property-header">
-                    <div>
-                      <h3 className="partner-property-title">
-                        {stay.name}
-                      </h3>
-                      <span className="partner-property-location">
-                        <MapPin size={13} /> {locationDisplay}
-                      </span>
+                {/* Card Body */}
+                <div className="listing-card__content">
+                  <div className="listing-card__header">
+                    <h3 className="listing-card__title">{room.name}</h3>
+                    <div className="listing-card__property-name">{parentProp.name}</div>
+                    <div className="listing-card__location">
+                      <MapPin size={13} />
+                      <span>{locationStr || "Sikkim"}</span>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleStayAvailability(stay)}
-                      className={`partner-toggle-btn ${
-                        isAvailable ? "partner-toggle-btn--available" : "partner-toggle-btn--unavailable"
-                      }`}
-                      title="Quick toggle live availability"
-                    >
-                      {isAvailable ? (
-                        <>
-                          <CheckCircle size={14} weight="fill" /> Available
-                        </>
-                      ) : (
-                        <>
-                          <XCircle size={14} weight="fill" /> Booked
-                        </>
-                      )}
-                    </button>
                   </div>
 
-                  {/* Rate & Host Contact Bar */}
-                  <div className="partner-property-meta-bar">
-                    <div className="partner-property-rate">
-                      <span className="partner-property-rate__label">Rate:</span>
-                      <span className="partner-property-rate__val">
-                        {stay.price ? (parseAndFormatPrice(stay.price)?.display || `₹${stay.price}`) : "On Request"}
-                      </span>
-                    </div>
-                    {contactPhone && (
-                      <a
-                        href={`tel:${contactPhone}`}
-                        className="partner-property-contact-chip"
-                        title="Property contact number"
-                      >
-                        <Phone size={13} weight="bold" />
-                        <span>{contactPhone}</span>
-                      </a>
-                    )}
+                  {/* Price Row */}
+                  <div className="listing-card__price-row">
+                    <span className="listing-card__price-amount">
+                      ₹{Number(room.price || 0).toLocaleString("en-IN")}
+                    </span>
+                    <span className="listing-card__price-period">/ night</span>
                   </div>
 
-                  {/* Description preview */}
-                  <p className="partner-property-desc">
-                    {stay.description
-                      ? stay.description.length > 120
-                        ? `${stay.description.slice(0, 120)}...`
-                        : stay.description
-                      : <span style={{ color: "#94a3b8", fontStyle: "italic" }}>No property description added yet.</span>}
-                  </p>
+                  {/* Specs: Capacity & Bed Type */}
+                  <div className="listing-card__specs">
+                    <div className="listing-card__spec-item">
+                      <Users size={15} color="#64748b" />
+                      <span>{room.capacity || 2} guests</span>
+                    </div>
+                    <div className="listing-card__spec-item">
+                      <Bed size={15} color="#64748b" />
+                      <span>
+                        {room.bedConfiguration ||
+                          `${room.numberOfBeds || 1} ${room.bedType || "Double Bed"}`}
+                      </span>
+                    </div>
+                  </div>
 
-                  {/* Amenities */}
-                  {stay.amenities?.length > 0 && (
-                    <div className="partner-property-amenities-wrap">
-                      {stay.amenities.slice(0, 4).map((a) => (
-                        <span key={a} className="partner-property-amenity-pill">
-                          {a}
+                  {/* Amenities Preview */}
+                  {Array.isArray(room.amenities) && room.amenities.length > 0 && (
+                    <div className="listing-card__amenities-preview">
+                      {room.amenities.slice(0, 3).map((am, idx) => (
+                        <span key={idx} className="listing-card__amenity-chip">
+                          {am}
                         </span>
                       ))}
-                      {stay.amenities.length > 4 && (
-                        <span className="partner-property-amenity-more">
-                          +{stay.amenities.length - 4} more
+                      {room.amenities.length > 3 && (
+                        <span className="listing-card__amenity-chip">
+                          +{room.amenities.length - 3} more
                         </span>
                       )}
                     </div>
                   )}
 
-                  {/* Room Inventory Preview (Backend populated from MongoDB) */}
-                  <div className="partner-property-rooms-preview">
-                    <div className="partner-property-rooms-preview__header">
-                      <span className="partner-property-rooms-preview__title">
-                        <Bed size={15} weight="duotone" color="var(--color-peach-deep)" />
-                        Rooms ({stayRooms.length})
-                      </span>
+                  {/* Moderation Approval Status Badge (Section 6 & 11) */}
+                  <div style={{ margin: "10px 0 8px" }}>
+                    {room.status === "approved" ? (
                       <span
-                        className={`partner-property-rooms-preview__status ${
-                          availRooms.length > 0 ? "is-available" : "is-blocked"
-                        }`}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "4px 10px",
+                          background: "#ecfdf5",
+                          color: "#065f46",
+                          border: "1px solid #a7f3d0",
+                          borderRadius: "6px",
+                          fontSize: "0.82rem",
+                          fontWeight: 700,
+                        }}
                       >
-                        {availRooms.length} of {stayRooms.length} Available
+                        <CheckCircle size={14} weight="fill" color="#10b981" /> 🟢 Approved
                       </span>
-                    </div>
-
-                    {stayRooms.length > 0 ? (
-                      <div className="partner-property-rooms-preview__list">
-                        {stayRooms.slice(0, 3).map((r, rIdx) => {
-                          const rId = r._id || r.id;
-                          const rAvail = r.availability === "available" || (r.active !== false && !r.availability);
-                          return (
-                            <div key={rId} className="partner-property-room-item">
-                              <div className="partner-property-room-item__info">
-                                <span className="partner-property-room-item__num">#{rIdx + 1}</span>
-                                <span className="partner-property-room-item__name">{r.name}</span>
-                                <span className="partner-property-room-item__type">· {r.type}</span>
-                              </div>
-                              <span
-                                className={`partner-property-room-item__badge ${
-                                  rAvail ? "is-open" : "is-blocked"
-                                }`}
-                              >
-                                {rAvail ? "Open" : "Blocked"}
-                              </span>
-                            </div>
-                          );
-                        })}
-                        {stayRooms.length > 3 && (
-                          <div className="partner-property-rooms-preview__more">
-                            +{stayRooms.length - 3} more
-                          </div>
-                        )}
-                      </div>
+                    ) : room.status === "rejected" ? (
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "4px 10px",
+                          background: "#fef2f2",
+                          color: "#991b1b",
+                          border: "1px solid #fecaca",
+                          borderRadius: "6px",
+                          fontSize: "0.82rem",
+                          fontWeight: 700,
+                        }}
+                        title={room.rejectionReason || room.reviewerNotes || "Listing rejected by administrator"}
+                      >
+                        <XCircle size={14} weight="fill" color="#ef4444" /> 🔴 Rejected
+                      </span>
                     ) : (
-                      <div className="partner-property-rooms-preview__empty">
-                        No individual rooms added yet.
-                      </div>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "4px 10px",
+                          background: "#fffbeb",
+                          color: "#92400e",
+                          border: "1px solid #fde68a",
+                          borderRadius: "6px",
+                          fontSize: "0.82rem",
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Clock size={14} weight="bold" color="#d97706" /> 🟡 Pending Approval
+                      </span>
                     )}
                   </div>
 
-                  {/* Structured 2x2 Action Buttons */}
-                  <div className="partner-property-actions-grid">
+                  {/* Actions Toolbar: [ Edit ] [ View ] [ Delete ] */}
+                  <div className="listing-card__actions">
                     <button
                       type="button"
-                      className="partner-card-btn partner-card-btn--primary"
-                      onClick={() => setRoomModalStay(stay)}
-                      title="Manage multiple rooms, pricing, photos, and availability"
+                      onClick={() => openEditListingModal(room)}
+                      className="listing-btn listing-btn--edit"
+                      title="Edit this individual listing"
                     >
-                      <Bed size={15} weight="bold" /> Manage Rooms ({stayRooms.length})
+                      <PencilSimple size={14} /> Edit
                     </button>
 
-                    <button
-                      type="button"
-                      className="partner-card-btn partner-card-btn--secondary"
-                      onClick={() => handleEditClick(stay)}
-                      title="Edit stay details and amenities"
-                    >
-                      <PencilSimple size={14} /> Edit Details
-                    </button>
-
-                    <button
-                      type="button"
-                      className="partner-card-btn partner-card-btn--secondary"
-                      onClick={() => setPhotoModalStay(stay)}
-                      title="Manage property photos and gallery"
-                    >
-                      <Camera size={14} /> Photos
-                    </button>
-
-                    <Link
-                      to={`/stays/${stay.slug || stayId}`}
+                    <a
+                      href={publicUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="partner-card-btn partner-card-btn--secondary"
-                      title="Preview public stay page in new tab"
+                      className="listing-btn listing-btn--view"
+                      title="View public stay detail page"
                     >
-                      <Eye size={14} /> View on Site
-                    </Link>
+                      <Eye size={14} /> View
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeletingListing(room)}
+                      className="listing-btn listing-btn--delete"
+                      title="Delete this listing"
+                    >
+                      <Trash size={14} />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -973,330 +1140,174 @@ export default function PartnerProperties() {
         </div>
       )}
 
-      {/* Edit Property Details Modal */}
-      {editingStay && (
-        <div className="admin-modal-backdrop" onClick={() => setEditingStay(null)}>
+      {/* ====================================================================
+          MODAL 1: ADD / EDIT ROOM LISTING (PART 5 - 13)
+          ==================================================================== */}
+      {showListingModal && (
+        <div className="listing-modal-backdrop" onClick={() => !savingListing && setShowListingModal(false)}>
           <div
-            className="admin-modal-content"
+            className="listing-modal-dialog"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "620px" }}
+            style={{ maxWidth: "700px" }}
           >
-            <div className="admin-modal-header">
-              <h3 style={{ margin: 0, fontSize: "1.15rem", color: "var(--color-navy)" }}>
-                Edit Details: {editingStay.name}
-              </h3>
+            {/* Modal Header */}
+            <div className="listing-modal-header">
+              <h2 className="listing-modal-title">
+                {editingListing ? `Edit Listing: ${editingListing.name}` : "Add Room Listing"}
+              </h2>
               <button
                 type="button"
-                className="admin-modal-close"
-                onClick={() => setEditingStay(null)}
+                onClick={() => setShowListingModal(false)}
+                disabled={savingListing}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
               >
-                &times;
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSaveStay}>
-              <div className="admin-modal-body" style={{ maxHeight: "70vh", overflowY: "auto" }}>
-                {formError && (
+            {/* Modal Form */}
+            <form onSubmit={handleSaveListing} style={{ display: "contents" }}>
+              <div className="listing-modal-body">
+                {/* Form Error Alert */}
+                {listingFormError && (
                   <div
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      background: "#fee2e2",
-                      border: "1px solid #fecaca",
-                      color: "#991b1b",
-                      padding: "8px 12px",
-                      borderRadius: "var(--radius-sm)",
-                      marginBottom: "12px",
-                      fontSize: "0.84rem",
-                    }}
-                  >
-                    <WarningCircle size={16} style={{ flexShrink: 0 }} />
-                    <span>{formError}</span>
-                  </div>
-                )}
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                  <div>
-                    <label className="admin-label">Property Name *</label>
-                    <input
-                      type="text"
-                      className="admin-input"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="admin-label">Property Type</label>
-                    <select
-                      className="admin-input"
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    >
-                      <option value="Homestay">Homestay</option>
-                      <option value="Hotel">Hotel</option>
-                      <option value="Guest House">Guest House</option>
-                      <option value="Resort">Resort</option>
-                      <option value="Lodge">Lodge</option>
-                      <option value="Cottage">Cottage</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
-                  <div>
-                    <label className="admin-label">Nightly Rate / Price (₹)</label>
-                    <div style={{ position: "relative" }}>
-                      <span
-                        style={{
-                          position: "absolute",
-                          left: "10px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          fontWeight: 700,
-                          color: "var(--color-navy)",
-                        }}
-                      >
-                        ₹
-                      </span>
-                      <input
-                        type="text"
-                        className="admin-input"
-                        style={{ paddingLeft: "26px" }}
-                        value={formData.price || ""}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        placeholder="e.g. 2000 or 2,500"
-                      />
-                    </div>
-                    {formData.price && (
-                      <span
-                        style={{
-                          fontSize: "0.75rem",
-                          color: "var(--color-forest)",
-                          fontWeight: 600,
-                          marginTop: "3px",
-                          display: "inline-block",
-                        }}
-                      >
-                        ✓ Website display:{" "}
-                        <strong>{parseAndFormatPrice(formData.price)?.display || `₹${formData.price} / night`}</strong>
-                      </span>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="admin-label">Host Contact Phone</label>
-                    <input
-                      type="text"
-                      className="admin-input"
-                      value={formData.contactDetails || ""}
-                      onChange={(e) => setFormData({ ...formData, contactDetails: e.target.value })}
-                      placeholder="+91 98765 43210"
-                    />
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: "12px" }}>
-                  <label className="admin-label">Availability Status</label>
-                  <select
-                    className="admin-input"
-                    value={formData.availability}
-                    onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
-                  >
-                    <option value="available">✓ Available for Bookings</option>
-                    <option value="unavailable">✕ Unavailable / Booked Out / Closed</option>
-                  </select>
-                </div>
-
-                <div style={{ marginBottom: "12px" }}>
-                  <label className="admin-label">Property Description &amp; Host Story</label>
-                  <textarea
-                    rows={4}
-                    className="admin-input"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Tell guests about your homestay, the mountain scenery, meals served, and local hospitality..."
-                  />
-                </div>
-
-                <div>
-                  <label className="admin-label">Amenities &amp; Facilities</label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
-                    {COMMON_AMENITIES.map((item) => {
-                      const selected = (formData.amenities || []).includes(item);
-                      return (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => toggleAmenity(item)}
-                          style={{
-                            padding: "5px 10px",
-                            borderRadius: "999px",
-                            fontSize: "0.78rem",
-                            fontWeight: 600,
-                            border: selected ? "1px solid var(--color-peach-deep)" : "1px solid var(--color-border)",
-                            background: selected ? "var(--color-peach-light)" : "var(--color-surface)",
-                            color: selected ? "var(--color-navy)" : "var(--color-text-muted)",
-                            cursor: "pointer",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "4px",
-                          }}
-                        >
-                          {selected ? <Check size={12} weight="bold" /> : <Plus size={12} />}
-                          {item}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              <div className="admin-modal-footer">
-                <button
-                  type="button"
-                  className="admin-btn admin-btn--secondary"
-                  onClick={() => setEditingStay(null)}
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="admin-btn admin-btn--primary" disabled={saving}>
-                  {saving ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Photo Manager Modal */}
-      {photoModalStay && (
-        <PhotoManagerModal
-          entity={photoModalStay}
-          entityType="Stay"
-          idKey="_id"
-          backendMode={true}
-          onClose={() => setPhotoModalStay(null)}
-          onSaveSuccess={() => {
-            setPhotoModalStay(null);
-            loadProperties();
-          }}
-        />
-      )}
-
-      {/* Property Rooms Manager Modal */}
-      {roomModalStay && (
-        <PropertyRoomsManagerModal
-          property={roomModalStay}
-          backendMode
-          allProperties={properties}
-          onSelectProperty={(stay) => setRoomModalStay(stay)}
-          onClose={() => {
-            setRoomModalStay(null);
-            if (searchParams.get("manageRooms")) {
-              setSearchParams({});
-            }
-            loadProperties();
-          }}
-        />
-      )}
-
-      {/* Add Property Modal */}
-      {showAddModal && (
-        <div className="admin-modal-backdrop" onClick={handleCloseAddModal}>
-          <div
-            className="admin-modal-content"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "680px", width: "95%", maxHeight: "90vh", display: "flex", flexDirection: "column" }}
-          >
-            <div className="admin-modal-header" style={{ flexShrink: 0 }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: "1.2rem", color: "var(--color-navy)", fontWeight: 700 }}>
-                  Add New Property
-                </h3>
-                <p style={{ margin: "2px 0 0", fontSize: "0.82rem", color: "#64748b" }}>
-                  Submit your property listing for Admin review and approval.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="admin-modal-close"
-                onClick={handleCloseAddModal}
-                disabled={isCreating}
-              >
-                &times;
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateProperty} style={{ display: "flex", flexDirection: "column", overflow: "hidden", flex: 1, margin: 0 }}>
-              <div className="admin-modal-body" style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
-                {addPropError && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      background: "#fee2e2",
-                      border: "1px solid #fecaca",
-                      color: "#991b1b",
                       padding: "10px 14px",
-                      borderRadius: "var(--radius-sm)",
-                      marginBottom: "16px",
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      borderRadius: "6px",
+                      color: "#991b1b",
                       fontSize: "0.85rem",
                       fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
                     }}
                   >
-                    <WarningCircle size={18} style={{ flexShrink: 0 }} />
-                    <span>{addPropError}</span>
+                    <WarningCircle size={16} weight="fill" />
+                    <span>{listingFormError}</span>
                   </div>
                 )}
 
-                {/* 1. BASIC INFORMATION */}
-                <h4
+                {/* Business / Property Container & Inherited Location (Section 8) */}
+                {properties.length > 1 ? (
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Homestay / Business *
+                    </label>
+                    <select
+                      value={listingForm.propertyId}
+                      onChange={(e) => setListingForm({ ...listingForm, propertyId: e.target.value })}
+                      required
+                      disabled={editingListing !== null}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        background: editingListing ? "#f8fafc" : "#ffffff",
+                      }}
+                    >
+                      {properties.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {p.name} ({p.location?.town || "Sikkim"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+
+                {/* Inherited Location from Partner Profile (Section 8) */}
+                <div
                   style={{
-                    fontSize: "0.8rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    color: "var(--color-navy)",
-                    margin: "0 0 10px",
-                    fontWeight: 700,
-                    paddingBottom: "4px",
-                    borderBottom: "1px solid var(--color-border)",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "8px",
+                    padding: "12px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
                   }}
                 >
-                  Basic Information
-                </h4>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                  <div
+                    style={{
+                      width: "36px",
+                      height: "36px",
+                      borderRadius: "8px",
+                      background: "#e0f2fe",
+                      color: "#0284c7",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <MapPin size={20} weight="bold" />
+                  </div>
                   <div>
-                    <label className="admin-label">Property Name *</label>
+                    <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Location
+                    </div>
+                    <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "#1e293b" }}>
+                      {[
+                        (properties.find((p) => p._id === listingForm.propertyId) || properties[0])?.location?.town ||
+                          currentPartner?.partnerProfile?.town ||
+                          "Namchi",
+                        (properties.find((p) => p._id === listingForm.propertyId) || properties[0])?.location?.district ||
+                          currentPartner?.partnerProfile?.district ||
+                          "South Sikkim",
+                        "Sikkim",
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
+                    </div>
+                    <div style={{ fontSize: "0.76rem", color: "#64748b", marginTop: "2px" }}>
+                      From your Partner profile (automatically attached to this room listing)
+                    </div>
+                  </div>
+                </div>
+
+                {/* Room Information: Name & Type (PART 5) */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Room Name *
+                    </label>
                     <input
                       type="text"
-                      className="admin-input"
-                      placeholder="e.g., Kanchenjunga View Homestay"
-                      value={newPropData.name}
-                      onChange={(e) => {
-                        setNewPropData({ ...newPropData, name: e.target.value });
-                        setAddPropError("");
-                      }}
-                      disabled={isCreating}
+                      placeholder="e.g. Deluxe Mountain View Room"
+                      value={listingForm.name}
+                      onChange={(e) => setListingForm({ ...listingForm, name: e.target.value })}
                       required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        boxSizing: "border-box",
+                      }}
                     />
                   </div>
 
                   <div>
-                    <label className="admin-label">Property Type *</label>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Room Type *
+                    </label>
                     <select
-                      className="admin-input"
-                      value={newPropData.type}
-                      onChange={(e) => setNewPropData({ ...newPropData, type: e.target.value })}
-                      disabled={isCreating}
+                      value={listingForm.type}
+                      onChange={(e) => setListingForm({ ...listingForm, type: e.target.value })}
                       required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                      }}
                     >
-                      {PROPERTY_TYPES.map((t) => (
+                      {ROOM_TYPES.map((t) => (
                         <option key={t} value={t}>
                           {t}
                         </option>
@@ -1305,47 +1316,602 @@ export default function PartnerProperties() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: "16px" }}>
-                  <label className="admin-label">Description *</label>
+                {/* Custom Room Type if Other */}
+                {listingForm.type === "Other" && (
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Custom Room Type *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Attic Studio Suite"
+                      value={listingForm.customType}
+                      onChange={(e) => setListingForm({ ...listingForm, customType: e.target.value })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Capacity & Beds (PART 6 & 7) */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Max Guests *
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={listingForm.capacity}
+                      onChange={(e) => setListingForm({ ...listingForm, capacity: Number(e.target.value) })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Bed Type *
+                    </label>
+                    <select
+                      value={listingForm.bedType}
+                      onChange={(e) => setListingForm({ ...listingForm, bedType: e.target.value })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      {BED_TYPES.map((b) => (
+                        <option key={b} value={b}>
+                          {b}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Number of Beds *
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={listingForm.numberOfBeds}
+                      onChange={(e) => setListingForm({ ...listingForm, numberOfBeds: Number(e.target.value) })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Custom Bed Type if Other */}
+                {listingForm.bedType === "Other" && (
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Custom Bed Type *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Traditional Sikkimese Floor Mattress"
+                      value={listingForm.customBedType}
+                      onChange={(e) => setListingForm({ ...listingForm, customBedType: e.target.value })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Price Per Night & Availability (PART 8 & 19) */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Price Per Night (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="50"
+                      placeholder="2500"
+                      value={listingForm.price}
+                      onChange={(e) => setListingForm({ ...listingForm, price: e.target.value })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Availability Status *
+                    </label>
+                    <select
+                      value={listingForm.availability}
+                      onChange={(e) => setListingForm({ ...listingForm, availability: e.target.value })}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      <option value="available">🟢 Available for booking</option>
+                      <option value="unavailable">🔴 Unavailable (Blocked)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Room Description (PART 9) */}
+                <div>
+                  <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                    Room Description (Optional)
+                  </label>
                   <textarea
                     rows="3"
-                    className="admin-input"
-                    placeholder="Describe your property, mountain views, peaceful environment, and the warm hospitality guests will enjoy..."
-                    value={newPropData.description}
-                    onChange={(e) => {
-                      setNewPropData({ ...newPropData, description: e.target.value });
-                      setAddPropError("");
+                    placeholder="Spacious room with a private balcony overlooking the mountains."
+                    value={listingForm.description}
+                    onChange={(e) => setListingForm({ ...listingForm, description: e.target.value })}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: "6px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.9rem",
+                      boxSizing: "border-box",
+                      fontFamily: "inherit",
                     }}
-                    disabled={isCreating}
-                    required
                   />
                 </div>
 
-                {/* 2. LOCATION */}
-                <h4
+                {/* Room Amenities & Custom Amenities (PART 10) */}
+                <div>
+                  <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "8px" }}>
+                    Room Amenities
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "8px", marginBottom: "12px" }}>
+                    {PREDEFINED_ROOM_AMENITIES.map((am) => (
+                      <label
+                        key={am}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          fontSize: "0.82rem",
+                          color: "#334155",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={listingForm.amenities.includes(am)}
+                          onChange={() => handleToggleRoomAmenity(am)}
+                        />
+                        <span>{am}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* Add Custom Amenity */}
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    <input
+                      type="text"
+                      placeholder="e.g. Electric Kettle"
+                      value={listingForm.customAmenityInput}
+                      onChange={(e) => setListingForm({ ...listingForm, customAmenityInput: e.target.value })}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddCustomRoomAmenity();
+                        }
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.84rem",
+                        flex: "1 1 200px",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomRoomAmenity}
+                      style={{
+                        padding: "8px 14px",
+                        background: "#f1f5f9",
+                        color: "var(--color-navy, #152238)",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "6px",
+                        fontWeight: 600,
+                        fontSize: "0.82rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      + Add Custom Amenity
+                    </button>
+                  </div>
+
+                  {/* Selected / Custom Amenities Pills */}
+                  {listingForm.amenities.length > 0 && (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+                      {listingForm.amenities.map((am) => (
+                        <span key={am} className="custom-amenity-pill">
+                          <span>{am}</span>
+                          <button
+                            type="button"
+                            className="custom-amenity-pill__remove"
+                            onClick={() => handleRemoveRoomAmenity(am)}
+                            title={`Remove ${am}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Room Images: Cover (COMPULSORY) & Gallery (PART 11 & 12) */}
+                <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
+                  <label style={{ display: "block", fontSize: "0.88rem", fontWeight: 700, color: "#1e293b", marginBottom: "4px" }}>
+                    Cover Image ⭐ <span style={{ color: "#dc2626" }}>(Compulsory)</span>
+                  </label>
+                  <p style={{ margin: "0 0 10px", fontSize: "0.78rem", color: "#64748b" }}>
+                    This primary image will be displayed on cards, search results, and public room listings.
+                  </p>
+
+                  {listingForm.image ? (
+                    <div style={{ position: "relative", width: "100%", height: "200px", borderRadius: "8px", overflow: "hidden", border: "1px solid #cbd5e1" }}>
+                      <img src={listingForm.image} alt="Cover preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "10px",
+                          right: "10px",
+                          display: "flex",
+                          gap: "8px",
+                        }}
+                      >
+                        <label
+                          style={{
+                            background: "rgba(21, 34, 56, 0.9)",
+                            color: "#ffffff",
+                            padding: "6px 12px",
+                            borderRadius: "6px",
+                            fontSize: "0.8rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "5px",
+                          }}
+                        >
+                          <Camera size={14} /> Replace Cover
+                          <input type="file" accept="image/*" onChange={handleRoomCoverUpload} style={{ display: "none" }} />
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        padding: "24px",
+                        border: "2px dashed #cbd5e1",
+                        borderRadius: "8px",
+                        textAlign: "center",
+                        background: "#f8fafc",
+                      }}
+                    >
+                      <label
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "10px 18px",
+                          background: "var(--color-navy, #152238)",
+                          color: "#ffffff",
+                          borderRadius: "6px",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <UploadSimple size={16} /> Upload Cover Photo
+                        <input type="file" accept="image/*" onChange={handleRoomCoverUpload} style={{ display: "none" }} />
+                      </label>
+                      {uploadingCover && <span style={{ display: "block", marginTop: "8px", fontSize: "0.8rem", color: "#64748b" }}>Uploading...</span>}
+                    </div>
+                  )}
+
+                  {/* Gallery Photos */}
+                  <div style={{ marginTop: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                      <label style={{ fontSize: "0.84rem", fontWeight: 700, color: "#1e293b" }}>
+                        Gallery Photos (Optional)
+                      </label>
+                      <label
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          fontSize: "0.78rem",
+                          fontWeight: 600,
+                          color: "var(--color-peach-deep, #c2613d)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Plus size={14} /> Add Gallery Photos
+                        <input type="file" accept="image/*" multiple onChange={handleRoomGalleryUpload} style={{ display: "none" }} />
+                      </label>
+                    </div>
+
+                    {uploadingGallery && (
+                      <span style={{ display: "block", marginBottom: "8px", fontSize: "0.8rem", color: "#64748b" }}>
+                        Uploading gallery photos...
+                      </span>
+                    )}
+
+                    {listingForm.gallery.length > 0 ? (
+                      <div className="gallery-grid">
+                        {listingForm.gallery.map((photoUrl, idx) => (
+                          <div key={idx} className="gallery-thumb-item">
+                            <img src={photoUrl} alt={`Gallery ${idx + 1}`} className="gallery-thumb-img" />
+                            <button
+                              type="button"
+                              className="gallery-thumb-delete"
+                              onClick={() => removeRoomGalleryPhoto(idx)}
+                              title="Delete this photo"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p style={{ margin: 0, fontSize: "0.78rem", color: "#94a3b8", fontStyle: "italic" }}>
+                        No gallery photos added yet.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="listing-modal-footer">
+                <button
+                  type="button"
+                  onClick={() => setShowListingModal(false)}
+                  disabled={savingListing}
                   style={{
-                    fontSize: "0.8rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    color: "var(--color-navy)",
-                    margin: "18px 0 10px",
-                    fontWeight: 700,
-                    paddingBottom: "4px",
-                    borderBottom: "1px solid var(--color-border)",
+                    padding: "10px 18px",
+                    background: "#f1f5f9",
+                    color: "#475569",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "6px",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
                   }}
                 >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingListing || uploadingCover || uploadingGallery}
+                  id="partner-submit-listing-btn"
+                  style={{
+                    padding: "10px 22px",
+                    background: "var(--color-peach-deep, #c2613d)",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontWeight: 700,
+                    fontSize: "0.88rem",
+                    cursor: savingListing ? "wait" : "pointer",
+                    boxShadow: "0 2px 6px rgba(194, 97, 61, 0.3)",
+                  }}
+                >
+                  {savingListing ? "Saving..." : editingListing ? "Save Changes" : "Create Listing"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+          MODAL 2: ADD PROPERTY (PART 3 & 4)
+          Strictly Property-level information only. NO Room fields!
+          ==================================================================== */}
+      {showPropertyModal && (
+        <div className="listing-modal-backdrop" onClick={() => !savingProperty && setShowPropertyModal(false)}>
+          <div
+            className="listing-modal-dialog"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "680px" }}
+          >
+            {/* Modal Header */}
+            <div className="listing-modal-header">
+              <h2 className="listing-modal-title">Add Property</h2>
+              <button
+                type="button"
+                onClick={() => setShowPropertyModal(false)}
+                disabled={savingProperty}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveProperty} style={{ display: "contents" }}>
+              <div className="listing-modal-body">
+                {propertyFormError && (
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      background: "#fef2f2",
+                      border: "1px solid #fecaca",
+                      borderRadius: "6px",
+                      color: "#991b1b",
+                      fontSize: "0.85rem",
+                      fontWeight: 600,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <WarningCircle size={16} weight="fill" />
+                    <span>{propertyFormError}</span>
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                    borderRadius: "6px",
+                    fontSize: "0.8rem",
+                    color: "#1e40af",
+                  }}
+                >
+                  <strong>Note:</strong> When created, your property will be submitted in <strong>Pending</strong> status
+                  for Lama Bhai Admin moderation. You can create individual room listings immediately.
+                </div>
+
+                {/* BASIC INFORMATION (PART 3) */}
+                <h4 style={{ margin: "4px 0 0", fontSize: "0.9rem", color: "var(--color-navy, #152238)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  Basic Information
+                </h4>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Property Name *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Biran Homestay"
+                      value={propertyForm.name}
+                      onChange={(e) => setPropertyForm({ ...propertyForm, name: e.target.value })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Property Type *
+                    </label>
+                    <select
+                      value={propertyForm.type}
+                      onChange={(e) => setPropertyForm({ ...propertyForm, type: e.target.value })}
+                      required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                      }}
+                    >
+                      {PROPERTY_TYPES.map((pt) => (
+                        <option key={pt} value={pt}>
+                          {pt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                    Description
+                  </label>
+                  <textarea
+                    rows="3"
+                    placeholder="Describe your property, surroundings, and host hospitality..."
+                    value={propertyForm.description}
+                    onChange={(e) => setPropertyForm({ ...propertyForm, description: e.target.value })}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: "6px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.9rem",
+                      boxSizing: "border-box",
+                      fontFamily: "inherit",
+                    }}
+                  />
+                </div>
+
+                {/* LOCATION (PART 3) */}
+                <h4 style={{ margin: "8px 0 0", fontSize: "0.9rem", color: "var(--color-navy, #152238)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                   Location
                 </h4>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
                   <div>
-                    <label className="admin-label">District *</label>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      District *
+                    </label>
                     <select
-                      className="admin-input"
-                      value={newPropData.district}
-                      onChange={(e) => setNewPropData({ ...newPropData, district: e.target.value })}
-                      disabled={isCreating}
+                      value={propertyForm.district}
+                      onChange={(e) => setPropertyForm({ ...propertyForm, district: e.target.value })}
                       required
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                      }}
                     >
                       {SIKKIM_DISTRICTS.map((d) => (
                         <option key={d} value={d}>
@@ -1356,563 +1922,385 @@ export default function PartnerProperties() {
                   </div>
 
                   <div>
-                    <label className="admin-label">Town / City *</label>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Town / City *
+                    </label>
                     <input
                       type="text"
-                      className="admin-input"
-                      placeholder="e.g., Gangtok, Pelling, Lachen, Ravangla"
-                      value={newPropData.town}
-                      onChange={(e) => {
-                        setNewPropData({ ...newPropData, town: e.target.value });
-                        setAddPropError("");
-                      }}
-                      disabled={isCreating}
+                      placeholder="e.g. Namchi"
+                      value={propertyForm.town}
+                      onChange={(e) => setPropertyForm({ ...propertyForm, town: e.target.value })}
                       required
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "12px", marginBottom: "16px" }}>
-                  <div>
-                    <label className="admin-label">Address *</label>
-                    <input
-                      type="text"
-                      className="admin-input"
-                      placeholder="e.g., Near Lower Helipad, Ridge Park Road"
-                      value={newPropData.address}
-                      onChange={(e) => {
-                        setNewPropData({ ...newPropData, address: e.target.value });
-                        setAddPropError("");
-                      }}
-                      disabled={isCreating}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="admin-label">Pincode (optional)</label>
-                    <input
-                      type="text"
-                      className="admin-input"
-                      placeholder="e.g., 737101"
-                      value={newPropData.pincode}
-                      onChange={(e) => setNewPropData({ ...newPropData, pincode: e.target.value })}
-                      disabled={isCreating}
-                    />
-                  </div>
-                </div>
-
-                {/* 3. PRICING */}
-                <h4
-                  style={{
-                    fontSize: "0.8rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    color: "var(--color-navy)",
-                    margin: "18px 0 10px",
-                    fontWeight: 700,
-                    paddingBottom: "4px",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  Pricing
-                </h4>
-
-                <div style={{ marginBottom: "16px", maxWidth: "280px" }}>
-                  <label className="admin-label">Price per Night (₹) *</label>
-                  <div style={{ position: "relative" }}>
-                    <span
                       style={{
-                        position: "absolute",
-                        left: "10px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        fontWeight: 700,
-                        color: "var(--color-navy)",
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        boxSizing: "border-box",
                       }}
-                    >
-                      ₹
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      className="admin-input"
-                      style={{ paddingLeft: "26px" }}
-                      placeholder="2500"
-                      value={newPropData.price}
-                      onChange={(e) => {
-                        setNewPropData({ ...newPropData, price: e.target.value });
-                        setAddPropError("");
-                      }}
-                      disabled={isCreating}
-                      required
                     />
                   </div>
                 </div>
 
-                {/* 4. CONTACT */}
-                <h4
-                  style={{
-                    fontSize: "0.8rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    color: "var(--color-navy)",
-                    margin: "18px 0 10px",
-                    fontWeight: 700,
-                    paddingBottom: "4px",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  Contact Details
-                </h4>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "16px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "14px" }}>
                   <div>
-                    <label className="admin-label">Phone *</label>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Address *
+                    </label>
                     <input
-                      type="tel"
-                      className="admin-input"
-                      placeholder="e.g., 9876543210"
-                      value={newPropData.phone}
-                      onChange={(e) => {
-                        setNewPropData({ ...newPropData, phone: e.target.value });
-                        setAddPropError("");
-                      }}
-                      disabled={isCreating}
+                      type="text"
+                      placeholder="e.g. Lower Ghurpisey Road"
+                      value={propertyForm.address}
+                      onChange={(e) => setPropertyForm({ ...propertyForm, address: e.target.value })}
                       required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="admin-label">Email (optional)</label>
-                    <input
-                      type="email"
-                      className="admin-input"
-                      placeholder="e.g., host@homestay.com"
-                      value={newPropData.email}
-                      onChange={(e) => setNewPropData({ ...newPropData, email: e.target.value })}
-                      disabled={isCreating}
-                    />
-                  </div>
-                </div>
-
-                {/* 5. AMENITIES */}
-                <h4
-                  style={{
-                    fontSize: "0.8rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    color: "var(--color-navy)",
-                    margin: "18px 0 10px",
-                    fontWeight: 700,
-                    paddingBottom: "4px",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  Amenities
-                </h4>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
-                    gap: "8px",
-                    marginBottom: "16px",
-                  }}
-                >
-                  {ADD_PROPERTY_AMENITIES.map((amenity) => {
-                    const isChecked = newPropData.amenities.includes(amenity);
-                    return (
-                      <label
-                        key={amenity}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          padding: "7px 10px",
-                          background: isChecked ? "rgba(224, 122, 95, 0.12)" : "#f8fafc",
-                          border: isChecked ? "1px solid var(--color-peach-deep)" : "1px solid var(--color-border)",
-                          borderRadius: "var(--radius-sm)",
-                          cursor: isCreating ? "default" : "pointer",
-                          fontSize: "0.82rem",
-                          fontWeight: isChecked ? 600 : 400,
-                          color: "var(--color-navy)",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          disabled={isCreating}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setNewPropData((prev) => ({
-                                ...prev,
-                                amenities: [...prev.amenities, amenity],
-                              }));
-                            } else {
-                              setNewPropData((prev) => ({
-                                ...prev,
-                                amenities: prev.amenities.filter((a) => a !== amenity),
-                              }));
-                            }
-                          }}
-                          style={{ accentColor: "var(--color-peach-deep)", cursor: "pointer" }}
-                        />
-                        <span>{amenity}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-
-                {/* 6. PHOTOS */}
-                <h4
-                  style={{
-                    fontSize: "0.8rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    color: "var(--color-navy)",
-                    margin: "18px 0 10px",
-                    fontWeight: 700,
-                    paddingBottom: "4px",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  Photos
-                </h4>
-
-                {/* Cover Image */}
-                <div style={{ marginBottom: "14px" }}>
-                  <label className="admin-label">Cover Image *</label>
-                  <p style={{ margin: "0 0 8px", fontSize: "0.75rem", color: "#64748b" }}>
-                    Primary photo displayed on property listings and search results.
-                  </p>
-
-                  {newPropData.image ? (
-                    <div
                       style={{
-                        position: "relative",
-                        display: "inline-block",
-                        borderRadius: "var(--radius-sm)",
-                        overflow: "hidden",
-                        border: "1px solid var(--color-border)",
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        boxSizing: "border-box",
                       }}
-                    >
-                      <img
-                        src={newPropData.image}
-                        alt="Cover preview"
-                        style={{ width: "200px", height: "130px", objectFit: "cover", display: "block" }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setNewPropData({ ...newPropData, image: "" })}
-                        disabled={isCreating}
-                        style={{
-                          position: "absolute",
-                          top: "6px",
-                          right: "6px",
-                          background: "rgba(0, 0, 0, 0.7)",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "50%",
-                          width: "24px",
-                          height: "24px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          cursor: "pointer",
-                        }}
-                        title="Remove cover photo"
-                      >
-                        <X size={14} weight="bold" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
-                        <label
-                          htmlFor="new-prop-cover-file"
-                          className="admin-btn admin-btn--secondary"
-                          style={{
-                            cursor: uploadingCover || isCreating ? "default" : "pointer",
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            fontSize: "0.82rem",
-                            padding: "8px 14px",
-                          }}
-                        >
-                          {uploadingCover ? (
-                            <>
-                              <ArrowsClockwise size={14} className="spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <UploadSimple size={15} weight="bold" />
-                              Upload Cover Photo
-                            </>
-                          )}
-                        </label>
-                        <input
-                          type="file"
-                          id="new-prop-cover-file"
-                          accept="image/jpeg,image/png,image/webp,image/avif"
-                          onChange={handleCoverUpload}
-                          disabled={uploadingCover || isCreating}
-                          style={{ display: "none" }}
-                        />
+                    />
+                  </div>
 
-                        <span style={{ fontSize: "0.78rem", color: "#94a3b8" }}>or paste URL:</span>
-                        <input
-                          type="url"
-                          className="admin-input"
-                          placeholder="https://example.com/cover.jpg"
-                          value={coverUrlInput}
-                          onChange={(e) => setCoverUrlInput(e.target.value)}
-                          onBlur={() => {
-                            if (coverUrlInput.trim()) {
-                              setNewPropData({ ...newPropData, image: coverUrlInput.trim() });
-                              setCoverUrlInput("");
-                              setAddPropError("");
-                            }
-                          }}
-                          style={{ flex: 1, minWidth: "180px", padding: "6px 10px", fontSize: "0.82rem" }}
-                          disabled={isCreating}
-                        />
-                      </div>
-
-                      {coverUploadError && (
-                        <p style={{ margin: "6px 0 0", fontSize: "0.78rem", color: "#dc2626" }}>
-                          {coverUploadError}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                      Pincode (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 737126"
+                      value={propertyForm.pincode}
+                      onChange={(e) => setPropertyForm({ ...propertyForm, pincode: e.target.value })}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: "6px",
+                        border: "1px solid #cbd5e1",
+                        fontSize: "0.9rem",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
                 </div>
 
-                {/* Gallery Images */}
-                <div style={{ marginBottom: "16px" }}>
-                  <label className="admin-label">Gallery Images (optional)</label>
-                  <p style={{ margin: "0 0 8px", fontSize: "0.75rem", color: "#64748b" }}>
-                    Additional photos of guest rooms, dining area, balcony, and scenic surrounding views.
-                  </p>
+                {/* PROPERTY AMENITIES (PART 3) */}
+                <h4 style={{ margin: "8px 0 0", fontSize: "0.9rem", color: "var(--color-navy, #152238)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  Property Amenities
+                </h4>
 
-                  <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap", marginBottom: "10px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: "8px" }}>
+                  {PREDEFINED_PROPERTY_AMENITIES.map((am) => (
                     <label
-                      htmlFor="new-prop-gallery-files"
-                      className="admin-btn admin-btn--secondary"
+                      key={am}
                       style={{
-                        cursor: uploadingGallery || isCreating ? "default" : "pointer",
-                        display: "inline-flex",
+                        display: "flex",
                         alignItems: "center",
                         gap: "6px",
                         fontSize: "0.82rem",
-                        padding: "8px 14px",
+                        color: "#334155",
+                        cursor: "pointer",
                       }}
                     >
-                      {uploadingGallery ? (
-                        <>
-                          <ArrowsClockwise size={14} className="spin" />
-                          Uploading Gallery...
-                        </>
-                      ) : (
-                        <>
-                          <UploadSimple size={15} weight="bold" />
-                          Upload Gallery Photos
-                        </>
-                      )}
+                      <input
+                        type="checkbox"
+                        checked={propertyForm.amenities.includes(am)}
+                        onChange={() => handleTogglePropAmenity(am)}
+                      />
+                      <span>{am}</span>
                     </label>
-                    <input
-                      type="file"
-                      id="new-prop-gallery-files"
-                      multiple
-                      accept="image/jpeg,image/png,image/webp,image/avif"
-                      onChange={handleGalleryUpload}
-                      disabled={uploadingGallery || isCreating}
-                      style={{ display: "none" }}
-                    />
+                  ))}
+                </div>
 
-                    <span style={{ fontSize: "0.78rem", color: "#94a3b8" }}>or paste URL:</span>
-                    <input
-                      type="url"
-                      className="admin-input"
-                      placeholder="https://example.com/photo.jpg"
-                      value={galleryUrlInput}
-                      onChange={(e) => setGalleryUrlInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          if (galleryUrlInput.trim()) {
-                            setNewPropData({
-                              ...newPropData,
-                              gallery: [...newPropData.gallery, galleryUrlInput.trim()],
-                            });
-                            setGalleryUrlInput("");
+                {/* Add Custom Amenity */}
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <input
+                    type="text"
+                    placeholder="e.g. Campfire Area"
+                    value={propertyForm.customAmenityInput}
+                    onChange={(e) => setPropertyForm({ ...propertyForm, customAmenityInput: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCustomPropAmenity();
+                      }
+                    }}
+                    style={{
+                      padding: "8px 12px",
+                      borderRadius: "6px",
+                      border: "1px solid #cbd5e1",
+                      fontSize: "0.84rem",
+                      flex: "1 1 200px",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomPropAmenity}
+                    style={{
+                      padding: "8px 14px",
+                      background: "#f1f5f9",
+                      color: "var(--color-navy, #152238)",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "6px",
+                      fontWeight: 600,
+                      fontSize: "0.82rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    + Add Custom Amenity
+                  </button>
+                </div>
+
+                {propertyForm.amenities.length > 0 && (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {propertyForm.amenities.map((am) => (
+                      <span key={am} className="custom-amenity-pill">
+                        <span>{am}</span>
+                        <button
+                          type="button"
+                          className="custom-amenity-pill__remove"
+                          onClick={() =>
+                            setPropertyForm((p) => ({
+                              ...p,
+                              amenities: p.amenities.filter((x) => x !== am),
+                            }))
                           }
-                        }
-                      }}
-                      style={{ flex: 1, minWidth: "160px", padding: "6px 10px", fontSize: "0.82rem" }}
-                      disabled={isCreating}
-                    />
-                    {galleryUrlInput.trim() && (
-                      <button
-                        type="button"
-                        className="admin-btn admin-btn--secondary"
-                        onClick={() => {
-                          setNewPropData({
-                            ...newPropData,
-                            gallery: [...newPropData.gallery, galleryUrlInput.trim()],
-                          });
-                          setGalleryUrlInput("");
-                        }}
-                        style={{ padding: "6px 10px", fontSize: "0.8rem" }}
-                      >
-                        Add URL
-                      </button>
-                    )}
-                  </div>
-
-                  {galleryUploadError && (
-                    <p style={{ margin: "0 0 8px", fontSize: "0.78rem", color: "#dc2626" }}>
-                      {galleryUploadError}
-                    </p>
-                  )}
-
-                  {newPropData.gallery.length > 0 && (
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      {newPropData.gallery.map((gUrl, idx) => (
-                        <div
-                          key={idx}
-                          style={{
-                            position: "relative",
-                            width: "80px",
-                            height: "60px",
-                            borderRadius: "var(--radius-sm)",
-                            overflow: "hidden",
-                            border: "1px solid var(--color-border)",
-                          }}
                         >
-                          <img
-                            src={typeof gUrl === "string" ? gUrl : gUrl.src}
-                            alt={`Gallery ${idx + 1}`}
-                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                          />
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* PROPERTY PHOTOS (PART 3) */}
+                <h4 style={{ margin: "8px 0 0", fontSize: "0.9rem", color: "var(--color-navy, #152238)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  Property Photos
+                </h4>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.84rem", fontWeight: 700, color: "#1e293b", marginBottom: "6px" }}>
+                    Cover Photo *
+                  </label>
+                  {propertyForm.image ? (
+                    <div style={{ position: "relative", width: "100%", height: "160px", borderRadius: "8px", overflow: "hidden", border: "1px solid #cbd5e1" }}>
+                      <img src={propertyForm.image} alt="Property cover" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <label
+                        style={{
+                          position: "absolute",
+                          bottom: "8px",
+                          right: "8px",
+                          background: "rgba(21, 34, 56, 0.9)",
+                          color: "#ffffff",
+                          padding: "6px 12px",
+                          borderRadius: "6px",
+                          fontSize: "0.78rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Replace
+                        <input type="file" accept="image/*" onChange={handlePropCoverUpload} style={{ display: "none" }} />
+                      </label>
+                    </div>
+                  ) : (
+                    <div style={{ padding: "20px", border: "2px dashed #cbd5e1", borderRadius: "8px", textAlign: "center", background: "#f8fafc" }}>
+                      <label
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          padding: "8px 16px",
+                          background: "var(--color-navy, #152238)",
+                          color: "#ffffff",
+                          borderRadius: "6px",
+                          fontSize: "0.82rem",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <UploadSimple size={15} /> Upload Property Cover
+                        <input type="file" accept="image/*" onChange={handlePropCoverUpload} style={{ display: "none" }} />
+                      </label>
+                      {uploadingPropCover && <span style={{ display: "block", marginTop: "6px", fontSize: "0.78rem" }}>Uploading...</span>}
+                    </div>
+                  )}
+                </div>
+
+                {/* Property Gallery Photos */}
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <label style={{ fontSize: "0.84rem", fontWeight: 700, color: "#1e293b" }}>
+                      Gallery Photos (Optional)
+                    </label>
+                    <label
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        color: "var(--color-peach-deep, #c2613d)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Plus size={14} /> Add Photos
+                      <input type="file" accept="image/*" multiple onChange={handlePropGalleryUpload} style={{ display: "none" }} />
+                    </label>
+                  </div>
+                  {uploadingPropGallery && <span style={{ fontSize: "0.78rem", color: "#64748b" }}>Uploading gallery...</span>}
+                  {propertyForm.gallery.length > 0 && (
+                    <div className="gallery-grid">
+                      {propertyForm.gallery.map((src, idx) => (
+                        <div key={idx} className="gallery-thumb-item">
+                          <img src={src} alt="Gallery" className="gallery-thumb-img" />
                           <button
                             type="button"
+                            className="gallery-thumb-delete"
                             onClick={() =>
-                              setNewPropData({
-                                ...newPropData,
-                                gallery: newPropData.gallery.filter((_, i) => i !== idx),
-                              })
+                              setPropertyForm((p) => ({
+                                ...p,
+                                gallery: p.gallery.filter((_, i) => i !== idx),
+                              }))
                             }
-                            disabled={isCreating}
-                            style={{
-                              position: "absolute",
-                              top: "2px",
-                              right: "2px",
-                              background: "rgba(0, 0, 0, 0.7)",
-                              color: "#fff",
-                              border: "none",
-                              borderRadius: "50%",
-                              width: "18px",
-                              height: "18px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                            }}
-                            title="Remove photo"
                           >
-                            <X size={10} weight="bold" />
+                            <X size={12} />
                           </button>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
-
-                {/* 7. COORDINATES */}
-                <h4
-                  style={{
-                    fontSize: "0.8rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                    color: "var(--color-navy)",
-                    margin: "18px 0 10px",
-                    fontWeight: 700,
-                    paddingBottom: "4px",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  GPS Coordinates (Optional)
-                </h4>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "8px" }}>
-                  <div>
-                    <label className="admin-label">Latitude</label>
-                    <input
-                      type="text"
-                      className="admin-input"
-                      placeholder="e.g., 27.3389"
-                      value={newPropData.latitude}
-                      onChange={(e) => setNewPropData({ ...newPropData, latitude: e.target.value })}
-                      disabled={isCreating}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="admin-label">Longitude</label>
-                    <input
-                      type="text"
-                      className="admin-input"
-                      placeholder="e.g., 88.6065"
-                      value={newPropData.longitude}
-                      onChange={(e) => setNewPropData({ ...newPropData, longitude: e.target.value })}
-                      disabled={isCreating}
-                    />
-                  </div>
-                </div>
               </div>
 
-              {/* MODAL FOOTER */}
-              <div
-                className="admin-modal-footer"
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "10px",
-                  padding: "12px 20px",
-                  borderTop: "1px solid var(--color-border)",
-                  background: "#f8fafc",
-                  flexShrink: 0,
-                }}
-              >
+              {/* Modal Footer */}
+              <div className="listing-modal-footer">
                 <button
                   type="button"
-                  className="admin-btn admin-btn--secondary"
-                  onClick={handleCloseAddModal}
-                  disabled={isCreating}
+                  onClick={() => setShowPropertyModal(false)}
+                  disabled={savingProperty}
+                  style={{
+                    padding: "10px 18px",
+                    background: "#f1f5f9",
+                    color: "#475569",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "6px",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="admin-btn admin-btn--primary"
-                  disabled={isCreating || uploadingCover || uploadingGallery}
+                  disabled={savingProperty || uploadingPropCover || uploadingPropGallery}
                   id="partner-submit-property-btn"
-                  style={{ minWidth: "150px" }}
+                  style={{
+                    padding: "10px 22px",
+                    background: "var(--color-peach-deep, #c2613d)",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontWeight: 700,
+                    fontSize: "0.88rem",
+                    cursor: savingProperty ? "wait" : "pointer",
+                    boxShadow: "0 2px 6px rgba(194, 97, 61, 0.3)",
+                  }}
                 >
-                  {isCreating ? (
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                      <ArrowsClockwise size={16} className="spin" />
-                      Creating property...
-                    </span>
-                  ) : (
-                    "Create Property"
-                  )}
+                  {savingProperty ? "Submitting..." : "Submit Property"}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ====================================================================
+          MODAL 3: DELETE CONFIRMATION (PART 15)
+          "You are about to permanently delete: [Room Name]"
+          Delete ONLY the individual Room Listing. DO NOT delete parent Property.
+          ==================================================================== */}
+      {deletingListing && (
+        <div className="listing-modal-backdrop" onClick={() => !isDeleting && setDeletingListing(null)}>
+          <div
+            className="listing-modal-dialog"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "480px" }}
+          >
+            <div className="listing-modal-header" style={{ background: "#fef2f2" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#991b1b" }}>
+                <WarningCircle size={22} weight="fill" />
+                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>Delete this listing?</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDeletingListing(null)}
+                disabled={isDeleting}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#991b1b" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="listing-modal-body" style={{ padding: "20px 24px" }}>
+              <p style={{ margin: "0 0 10px", fontSize: "0.95rem", color: "#1e293b", lineHeight: 1.5 }}>
+                You are about to permanently delete:
+                <br />
+                <strong style={{ fontSize: "1.05rem", color: "var(--color-navy, #152238)" }}>
+                  {deletingListing.name}
+                </strong>
+              </p>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "#64748b", lineHeight: 1.5 }}>
+                This will only remove this room listing. Your parent property{" "}
+                <strong>
+                  {deletingListing.property?.name ||
+                    properties.find((p) => p._id === deletingListing.property)?.name ||
+                    "Homestay"}
+                </strong>{" "}
+                will remain completely safe and intact.
+              </p>
+            </div>
+
+            <div className="listing-modal-footer">
+              <button
+                type="button"
+                onClick={() => setDeletingListing(null)}
+                disabled={isDeleting}
+                style={{
+                  padding: "9px 16px",
+                  background: "#f1f5f9",
+                  color: "#475569",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "6px",
+                  fontWeight: 600,
+                  fontSize: "0.84rem",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteListing}
+                disabled={isDeleting}
+                id="partner-confirm-delete-btn"
+                style={{
+                  padding: "9px 18px",
+                  background: "#dc2626",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontWeight: 700,
+                  fontSize: "0.84rem",
+                  cursor: isDeleting ? "wait" : "pointer",
+                }}
+              >
+                {isDeleting ? "Deleting..." : "Delete Listing"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -55,14 +55,20 @@ export default function AdminPartners() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
+  const [showRetypePassword, setShowRetypePassword] = useState(false);
+  const initialPartnerFormData = {
     name: "",
+    businessName: "",
     phone: "",
     email: "",
-    temporaryPassword: "",
-    agencyName: "",
-    location: "Lachen",
-  });
+    district: "South Sikkim",
+    town: "Namchi",
+    address: "",
+    pincode: "",
+    password: "",
+    retypePassword: "",
+  };
+  const [formData, setFormData] = useState(initialPartnerFormData);
 
   // Edit / Status Modal state
   const [editingPartner, setEditingPartner] = useState(null);
@@ -110,14 +116,18 @@ export default function AdminPartners() {
     setFormError("");
   }
 
-  // Handle Add Partner Submission
+  // Handle Add Partner Submission (Section 2)
   async function handleAddPartnerSubmit(e) {
     e.preventDefault();
     setFormError("");
 
     // Client validation
     if (!formData.name.trim()) {
-      setFormError("Partner full name is required.");
+      setFormError("Full Name is required.");
+      return;
+    }
+    if (!formData.businessName.trim()) {
+      setFormError("Business / Homestay Name is required.");
       return;
     }
     if (!formData.phone.trim()) {
@@ -133,8 +143,24 @@ export default function AdminPartners() {
       setFormError("Please enter a valid email address.");
       return;
     }
-    if (!formData.temporaryPassword || formData.temporaryPassword.length < 6) {
-      setFormError("Temporary password must be at least 6 characters long.");
+    if (!formData.district.trim()) {
+      setFormError("Location / District is required.");
+      return;
+    }
+    if (!formData.town.trim()) {
+      setFormError("Town / City is required.");
+      return;
+    }
+    if (!formData.address.trim()) {
+      setFormError("Address is required.");
+      return;
+    }
+    if (!formData.password || formData.password.length < 6) {
+      setFormError("Password must be at least 6 characters long.");
+      return;
+    }
+    if (formData.password !== formData.retypePassword) {
+      setFormError("Password and Retype Password must match.");
       return;
     }
 
@@ -143,26 +169,24 @@ export default function AdminPartners() {
 
       const payload = {
         name: formData.name.trim(),
+        businessName: formData.businessName.trim(),
+        agencyName: formData.businessName.trim(),
         phone: formData.phone.trim(),
         email: formData.email.trim(),
-        temporaryPassword: formData.temporaryPassword,
-        agencyName: formData.agencyName.trim() || formData.name.trim(),
-        location: formData.location.trim() || "Sikkim",
+        district: formData.district.trim(),
+        town: formData.town.trim(),
+        address: formData.address.trim(),
+        pincode: formData.pincode.trim(),
+        password: formData.password,
+        retypePassword: formData.retypePassword,
       };
 
       const res = await api.admin.createPartner(payload);
 
       if (res && res.success) {
-        setSuccessBanner("Partner created successfully.");
+        setSuccessBanner(`Partner "${formData.name}" created successfully with role = partner.`);
         setShowAddModal(false);
-        setFormData({
-          name: "",
-          phone: "",
-          email: "",
-          temporaryPassword: "",
-          agencyName: "",
-          location: "Lachen",
-        });
+        setFormData(initialPartnerFormData);
         await fetchPartners();
         setTimeout(() => setSuccessBanner(""), 6000);
       } else {
@@ -487,17 +511,17 @@ export default function AdminPartners() {
 
                 return (
                   <tr key={partnerId}>
-                    {/* Column 1: Partner & Agency */}
+                    {/* Column 1: Partner & Business (Section 24) */}
                     <td>
                       <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                        <strong style={{ color: "var(--color-navy)", fontSize: "0.95rem" }}>
+                        <strong style={{ color: "var(--color-navy)", fontSize: "0.98rem" }}>
                           {partner.name}
                         </strong>
-                        <span style={{ fontSize: "0.82rem", color: "var(--color-text-muted)" }}>
-                          {agencyName}
+                        <span style={{ fontSize: "0.85rem", color: "var(--color-peach-deep)", fontWeight: 700 }}>
+                          {partner.partnerProfile?.businessName || agencyName}
                         </span>
                         <span style={{ fontSize: "0.72rem", color: "var(--color-text-muted)" }}>
-                          Role: <span style={{ fontWeight: 600, color: "var(--color-peach-deep)" }}>{partner.role}</span> · ID: <code>{String(partnerId).slice(-6)}</code>
+                          Role: <span style={{ fontWeight: 600 }}>{partner.role}</span> · ID: <code>{String(partnerId).slice(-6)}</code>
                         </span>
                         {partner.createdAt && (
                           <span style={{ fontSize: "0.7rem", color: "#64748b" }}>
@@ -642,12 +666,14 @@ export default function AdminPartners() {
                       </div>
                     </td>
 
-                    {/* Column 5: Properties */}
+                    {/* Column 5: Number of Listings (Section 24) */}
                     <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <HouseLine size={16} color="var(--color-peach-deep)" />
-                        <span style={{ fontWeight: 600, fontSize: "0.88rem" }}>
-                          {propertiesCount} {propertiesCount === 1 ? "Stay" : "Stays"}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <span style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--color-navy)" }}>
+                          {partner.listingsCount !== undefined ? partner.listingsCount : 0} Listings
+                        </span>
+                        <span style={{ fontSize: "0.74rem", color: "#64748b" }}>
+                          {propertiesCount} {propertiesCount === 1 ? "Homestay" : "Homestays"}
                         </span>
                       </div>
                     </td>
@@ -786,7 +812,7 @@ export default function AdminPartners() {
                         <input
                           type="text"
                           name="name"
-                          placeholder="e.g., Tenzing Norbu"
+                          placeholder="e.g., Biran Subba"
                           value={formData.name}
                           onChange={handleInputChange}
                           disabled={isSubmitting}
@@ -797,7 +823,24 @@ export default function AdminPartners() {
 
                     <div className="admin-field">
                       <label className="admin-field__label">
-                        <span className="admin-field__title">Phone Number *</span>
+                        <span className="admin-field__title">Business / Homestay Name *</span>
+                        <input
+                          type="text"
+                          name="businessName"
+                          placeholder="e.g., Biran Homestay"
+                          value={formData.businessName}
+                          onChange={handleInputChange}
+                          disabled={isSubmitting}
+                          required
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px", marginBottom: "10px" }}>
+                    <div className="admin-field">
+                      <label className="admin-field__label">
+                        <span className="admin-field__title">Phone *</span>
                         <input
                           type="tel"
                           name="phone"
@@ -809,35 +852,81 @@ export default function AdminPartners() {
                         />
                       </label>
                     </div>
-                  </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
                     <div className="admin-field">
                       <label className="admin-field__label">
-                        <span className="admin-field__title">Homestay / Agency Name</span>
+                        <span className="admin-field__title">Location / District *</span>
+                        <select
+                          name="district"
+                          value={formData.district}
+                          onChange={handleInputChange}
+                          disabled={isSubmitting}
+                          style={{
+                            width: "100%",
+                            padding: "9px 12px",
+                            borderRadius: "var(--radius-sm)",
+                            border: "1px solid var(--color-border)",
+                            background: "#fff",
+                            fontSize: "0.88rem",
+                          }}
+                          required
+                        >
+                          <option value="South Sikkim">South Sikkim</option>
+                          <option value="East Sikkim">East Sikkim</option>
+                          <option value="West Sikkim">West Sikkim</option>
+                          <option value="North Sikkim">North Sikkim</option>
+                          <option value="Pakyong">Pakyong</option>
+                          <option value="Soreng">Soreng</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px", marginBottom: "10px" }}>
+                    <div className="admin-field">
+                      <label className="admin-field__label">
+                        <span className="admin-field__title">Town / City *</span>
                         <input
                           type="text"
-                          name="agencyName"
-                          placeholder="e.g., Lachen Mountain View Homestay"
-                          value={formData.agencyName}
+                          name="town"
+                          placeholder="e.g., Namchi"
+                          value={formData.town}
+                          onChange={handleInputChange}
+                          disabled={isSubmitting}
+                          required
+                        />
+                      </label>
+                    </div>
+
+                    <div className="admin-field">
+                      <label className="admin-field__label">
+                        <span className="admin-field__title">Pincode (optional)</span>
+                        <input
+                          type="text"
+                          name="pincode"
+                          placeholder="e.g., 737126"
+                          value={formData.pincode}
                           onChange={handleInputChange}
                           disabled={isSubmitting}
                         />
                       </label>
                     </div>
+                  </div>
 
-                    <div className="admin-field">
-                      <label className="admin-field__label">
-                        <span className="admin-field__title">Base Location *</span>
-                        <Dropdown
-                          options={SIKKIM_LOCATIONS}
-                          value={formData.location}
-                          onChange={(val) => setFormData((prev) => ({ ...prev, location: val }))}
-                          disabled={isSubmitting}
-                          light
-                        />
-                      </label>
-                    </div>
+                  <div className="admin-field">
+                    <label className="admin-field__label">
+                      <span className="admin-field__title">Address *</span>
+                      <input
+                        type="text"
+                        name="address"
+                        placeholder="e.g., XYZ Road, Near Central Park"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        disabled={isSubmitting}
+                        required
+                      />
+                    </label>
                   </div>
                 </div>
 
@@ -860,61 +949,97 @@ export default function AdminPartners() {
 
                   <div className="admin-field" style={{ marginBottom: "10px" }}>
                     <label className="admin-field__label">
-                      <span className="admin-field__title">Email (Used for Partner Login) *</span>
+                      <span className="admin-field__title">Email *</span>
                       <input
                         type="email"
                         name="email"
-                        placeholder="e.g., partner@example.com"
+                        placeholder="e.g., biran@example.com"
                         value={formData.email}
                         onChange={handleInputChange}
                         disabled={isSubmitting}
                         required
                       />
                     </label>
-                    <p className="admin-field__help" style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
-                      This email is unique and will be used by the host to log in at /partner/login.
-                    </p>
                   </div>
 
-                  <div className="admin-field">
-                    <label className="admin-field__label">
-                      <span className="admin-field__title">Temporary Password *</span>
-                      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          name="temporaryPassword"
-                          placeholder="At least 6 characters"
-                          value={formData.temporaryPassword}
-                          onChange={handleInputChange}
-                          disabled={isSubmitting}
-                          style={{ paddingRight: "40px" }}
-                          required
-                          minLength={6}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          style={{
-                            position: "absolute",
-                            right: "10px",
-                            background: "none",
-                            border: "none",
-                            color: "#64748b",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            padding: "4px",
-                          }}
-                          title={showPassword ? "Hide password" : "Show password"}
-                        >
-                          {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                    </label>
-                    <p className="admin-field__help" style={{ margin: "2px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
-                      Password is automatically hashed securely before saving to the database.
-                    </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "10px" }}>
+                    <div className="admin-field">
+                      <label className="admin-field__label">
+                        <span className="admin-field__title">Password *</span>
+                        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            placeholder="At least 6 characters"
+                            value={formData.password}
+                            onChange={handleInputChange}
+                            disabled={isSubmitting}
+                            style={{ paddingRight: "40px" }}
+                            required
+                            minLength={6}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            style={{
+                              position: "absolute",
+                              right: "10px",
+                              background: "none",
+                              border: "none",
+                              color: "#64748b",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              padding: "4px",
+                            }}
+                            title={showPassword ? "Hide password" : "Show password"}
+                          >
+                            {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="admin-field">
+                      <label className="admin-field__label">
+                        <span className="admin-field__title">Retype Password *</span>
+                        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                          <input
+                            type={showRetypePassword ? "text" : "password"}
+                            name="retypePassword"
+                            placeholder="Confirm password"
+                            value={formData.retypePassword}
+                            onChange={handleInputChange}
+                            disabled={isSubmitting}
+                            style={{ paddingRight: "40px" }}
+                            required
+                            minLength={6}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowRetypePassword(!showRetypePassword)}
+                            style={{
+                              position: "absolute",
+                              right: "10px",
+                              background: "none",
+                              border: "none",
+                              color: "#64748b",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              padding: "4px",
+                            }}
+                            title={showRetypePassword ? "Hide password" : "Show password"}
+                          >
+                            {showRetypePassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </label>
+                    </div>
                   </div>
+                  <p className="admin-field__help" style={{ margin: "4px 0 0", fontSize: "0.75rem", color: "#64748b" }}>
+                    Password is validated and securely hashed before storing. Role is set to &quot;partner&quot;.
+                  </p>
                 </div>
               </div>
 

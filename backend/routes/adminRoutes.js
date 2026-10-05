@@ -13,6 +13,12 @@ router.use(adminAccess);
 router.get('/properties', adminController.getAllProperties);
 router.patch('/properties/:id/status', adminController.updatePropertyStatus);
 
+// Room Listings Moderation (Source-of-truth workflow: Admin approves each individual room listing)
+router.get('/rooms', adminController.getAllListings);
+router.get('/listings', adminController.getAllListings);
+router.patch('/rooms/:id/status', adminController.updateListingStatus);
+router.patch('/listings/:id/status', adminController.updateListingStatus);
+
 // Partner Management & Verification
 router.get('/partners', adminController.getAllPartners);
 router.post('/partners', adminController.createPartner);

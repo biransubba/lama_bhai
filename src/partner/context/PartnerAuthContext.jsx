@@ -59,8 +59,8 @@ export function PartnerAuthProvider({ children }) {
       setAuthError(null);
       const res = await api.auth.getMe();
       if (res && res.success && res.user) {
-        // Enforce owner / admin role restriction
-        if (res.user.role === "owner" || res.user.role === "admin") {
+        // Enforce partner / owner / admin role restriction
+        if (res.user.role === "owner" || res.user.role === "partner" || res.user.role === "admin") {
           setUser(res.user);
         } else {
           setUser(null);
@@ -91,8 +91,8 @@ export function PartnerAuthProvider({ children }) {
         throw new Error(res?.error || "Login failed. Please check your credentials.");
       }
 
-      // Check role authorization: Partner portal requires 'owner' or 'admin'
-      if (res.user.role !== "owner" && res.user.role !== "admin") {
+      // Check role authorization: Partner portal requires 'partner', 'owner', or 'admin'
+      if (res.user.role !== "owner" && res.user.role !== "partner" && res.user.role !== "admin") {
         // Terminate session immediately for unauthorized roles
         try {
           await api.auth.logout();

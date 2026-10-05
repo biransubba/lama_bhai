@@ -285,7 +285,7 @@ exports.deleteProperty = async (req, res, next) => {
  */
 exports.addRoom = async (req, res, next) => {
   try {
-    const { id } = req.params;
+    let { id } = req.params;
     const {
       name,
       type,
@@ -302,16 +302,53 @@ exports.addRoom = async (req, res, next) => {
       gallery,
       availability,
       status,
+      location: customLocation,
     } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ success: false, error: 'Invalid property ID format' });
+    let property;
+    if (id && mongoose.Types.ObjectId.isValid(id)) {
+      property = await Property.findById(id);
+    } else {
+      // Find default or first property belonging to authenticated partner
+      property = await Property.findOne({ owner: req.user._id });
     }
 
-    const property = await Property.findById(id);
-
     if (!property) {
-      return res.status(404).json({ success: false, error: 'Property not found' });
+      // Auto-create property container from partner profile if one doesn't exist
+      const pProfile = req.user.partnerProfile || {};
+      const partnerName = req.user.name || 'Partner';
+      const homestayName = (pProfile.businessName || pProfile.agencyName || `${partnerName} Homestay`).trim();
+      const pTown = (pProfile.town || 'Namchi').trim();
+      const pDist = (pProfile.district || 'South Sikkim').trim();
+
+      let baseSlug = createSlug(homestayName);
+      let slug = baseSlug;
+      let counter = 1;
+      while (await Property.findOne({ slug })) {
+        slug = `${baseSlug}-${counter++}`;
+      }
+
+      property = await Property.create({
+        name: homestayName,
+        slug,
+        type: 'Homestay',
+        owner: req.user._id,
+        description: `Welcome to ${homestayName}. Hosted by ${partnerName}.`,
+        location: {
+          district: pDist,
+          town: pTown,
+          address: pProfile.address || '',
+          pincode: pProfile.pincode || '',
+        },
+        status: 'approved',
+        active: true,
+        price: 0,
+        image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945',
+        contactDetails: {
+          phone: req.user.phone || '',
+          email: req.user.email || '',
+        },
+      });
     }
 
     // Ownership check: must own parent property
@@ -329,7 +366,7 @@ exports.addRoom = async (req, res, next) => {
       });
     }
 
-    // Compulsory Cover Image validation (PART 11)
+    // Compulsory Cover Image validation
     let finalCoverImage = image && typeof image === 'string' ? image.trim() : '';
     if (!finalCoverImage) {
       if (name && name.startsWith('T3') && property.image) {
@@ -349,6 +386,26 @@ exports.addRoom = async (req, res, next) => {
 
     const resolvedType =
       type === 'Other' && customType ? customType : type || 'Standard';
+
+    // Inherit location from Partner profile / property
+    const pProfile = req.user.partnerProfile || {};
+    const pLocation = property.location || {};
+    const resolvedDistrict = (customLocation?.district || pProfile.district || pLocation.district || 'South Sikkim').trim();
+    const resolvedTown = (customLocation?.town || pProfile.town || pLocation.town || 'Namchi').trim();
+    const resolvedAddress = (customLocation?.address || pProfile.address || pLocation.address || '').trim();
+    const resolvedPincode = (customLocation?.pincode || pProfile.pincode || pLocation.pincode || '').trim();
+    const resolvedFormatted = (customLocation?.formatted || `${resolvedTown}, ${resolvedDistrict}`).trim();
+
+    const roomLocation = {
+      district: resolvedDistrict,
+      town: resolvedTown,
+      address: resolvedAddress,
+      pincode: resolvedPincode,
+      formatted: resolvedFormatted,
+    };
+
+    // TASK 12: New room listings submitted by partner start as 'pending'
+    const initialStatus = req.user.role === 'admin' && status ? status : 'pending';
 
     const room = await Room.create({
       property: property._id,
@@ -371,8 +428,9 @@ exports.addRoom = async (req, res, next) => {
               : item
           )
         : [],
+      location: roomLocation,
       availability: availability || 'available',
-      status: status === 'draft' ? 'draft' : 'published',
+      status: initialStatus,
       active: true,
     });
 
@@ -384,7 +442,7 @@ exports.addRoom = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Room listing created successfully',
+      message: 'Room listing created successfully and submitted for Admin review (Pending Approval).',
       data: room,
     });
   } catch (error) {
@@ -446,6 +504,7 @@ exports.updateRoom = async (req, res, next) => {
       'amenities',
       'image',
       'gallery',
+      'location',
       'availability',
       'status',
       'active',
@@ -461,11 +520,23 @@ exports.updateRoom = async (req, res, next) => {
               ? { src: item.trim(), alt: room.name, category: 'Room' }
               : item
           );
+        } else if (field === 'status') {
+          // Admin can change status directly; Partner edit resets status below
+          if (req.user.role === 'admin') {
+            room.status = req.body.status;
+          }
         } else {
           room[field] = req.body[field];
         }
       }
     });
+
+    // TASK 12: Section 17 - When partner edits an approved listing, reset status to 'pending'
+    if (req.user.role !== 'admin') {
+      room.status = 'pending';
+      room.rejectionReason = '';
+      room.reviewerNotes = '';
+    }
 
     // Update bedConfiguration if bedType or numberOfBeds was supplied
     if (req.body.bedType || req.body.numberOfBeds || req.body.customBedType) {
@@ -478,7 +549,7 @@ exports.updateRoom = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: 'Room listing updated successfully',
+      message: 'Room listing updated successfully. It is now pending Admin review.',
       data: room,
     });
   } catch (error) {

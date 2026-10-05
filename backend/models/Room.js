@@ -77,7 +77,7 @@ const roomSchema = new mongoose.Schema(
     image: {
       type: String,
       trim: true,
-      required: [true, 'Cover image is required'],
+      default: 'https://images.unsplash.com/photo-1590490360182-c33d57733427',
     },
     gallery: {
       type: [roomGallerySchema],
@@ -91,8 +91,35 @@ const roomSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['published', 'draft'],
-      default: 'published',
+      enum: ['pending', 'approved', 'rejected', 'published', 'draft'],
+      default: 'pending',
+      index: true,
+    },
+    location: {
+      district: { type: String, trim: true, default: '' },
+      town: { type: String, trim: true, default: '' },
+      address: { type: String, trim: true, default: '' },
+      pincode: { type: String, trim: true, default: '' },
+      formatted: { type: String, trim: true, default: '' },
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    reviewerNotes: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    reviewedAt: {
+      type: Date,
+      default: null,
+    },
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
     active: {
       type: Boolean,
@@ -105,8 +132,8 @@ const roomSchema = new mongoose.Schema(
   }
 );
 
-// Index for finding rooms by property and availability
-roomSchema.index({ property: 1, availability: 1, active: 1 });
+// Index for finding rooms by property, status, and availability
+roomSchema.index({ property: 1, status: 1, availability: 1, active: 1 });
 
 const Room = mongoose.model('Room', roomSchema);
 
